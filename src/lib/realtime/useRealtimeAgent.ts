@@ -224,8 +224,13 @@ export function useRealtimeAgent() {
               type: "realtime",
               audio: {
                 input: {
-                  turn_detection: { type: "semantic_vad" },
-                  transcription: { model: "whisper-1" },
+                  turn_detection: {
+                    type: "semantic_vad",
+                    eagerness: "low",
+                    create_response: true,
+                    interrupt_response: true,
+                  },
+                  transcription: { model: "gpt-4o-transcribe" },
                 },
               },
             },
