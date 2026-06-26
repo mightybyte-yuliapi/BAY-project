@@ -80,6 +80,8 @@ export function useRealtimeAgent() {
   const dcRef = useRef<RTCDataChannel | null>(null);
   const micRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Lets handleFunctionCall trigger disconnect without a circular dependency.
+  const endCallRef = useRef<(() => void) | null>(null);
 
   // Send a JSON event to the model over the data channel.
   const send = useCallback((event: Record<string, unknown>) => {
@@ -121,6 +123,12 @@ export function useRealtimeAgent() {
         },
       });
       send({ type: ClientEvent.CreateResponse });
+
+      // end_call means the report was filed — let the agent say its goodbye,
+      // then tear down the session.
+      if (call.name === "end_call" && ok) {
+        setTimeout(() => endCallRef.current?.(), 8000);
+      }
     },
     [send, toolCall],
   );
@@ -168,16 +176,13 @@ export function useRealtimeAgent() {
   );
 
   const connect = useCallback(async () => {
-    console.log("[agent] connect() called, status =", status);
     if (status === "connecting" || status === "connected") return;
     setError(null);
     setStatus("connecting");
     try {
       // 1. Mint an ephemeral token from our backend.
-      console.log("[agent] minting ephemeral token…");
       const { clientSecret } = await session.mutateAsync();
       const ephemeralKey = clientSecret.value;
-      console.log("[agent] got token:", ephemeralKey?.slice(0, 8), "…");
 
       // 2. Set up the peer connection + audio playback element.
       const pc = new RTCPeerConnection();
@@ -205,50 +210,12 @@ export function useRealtimeAgent() {
         },
       });
       micRef.current = mic;
-      const micTrack = mic.getTracks()[0];
-      pc.addTrack(micTrack, mic);
-      console.log(
-        "[agent] mic track:",
-        micTrack.label,
-        "| enabled:",
-        micTrack.enabled,
-        "| muted:",
-        micTrack.muted,
-        "| state:",
-        micTrack.readyState,
-      );
-
-      // Mic level meter — proves whether audio is actually being captured.
-      try {
-        const ac = new AudioContext();
-        const src = ac.createMediaStreamSource(mic);
-        const analyser = ac.createAnalyser();
-        analyser.fftSize = 512;
-        src.connect(analyser);
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        let lastLog = 0;
-        const tick = () => {
-          if (!micRef.current) return; // stopped
-          analyser.getByteTimeDomainData(data);
-          let peak = 0;
-          for (const v of data) peak = Math.max(peak, Math.abs(v - 128));
-          const now = performance.now();
-          if (now - lastLog > 700) {
-            lastLog = now;
-            console.log("[agent] mic level (0-128):", peak);
-          }
-          requestAnimationFrame(tick);
-        };
-        tick();
-      } catch (err) {
-        console.warn("[agent] mic meter failed:", err);
-      }
+      pc.addTrack(mic.getTracks()[0], mic);
 
       // 4. Data channel carries the event stream (transcripts, tools, state).
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
       dc.addEventListener("open", () => {
-        console.log("[agent] data channel OPEN — sending session.update");
         // Ensure turn detection + transcription are active for this session.
         dc.send(
           JSON.stringify({
@@ -268,18 +235,7 @@ export function useRealtimeAgent() {
       dc.addEventListener("message", (e) => {
         try {
           const evt = JSON.parse(e.data);
-          if (evt.type === "session.updated" || evt.type === "session.created") {
-            console.log(
-              "[agent] event:",
-              evt.type,
-              "turn_detection =",
-              JSON.stringify(evt.session?.audio?.input?.turn_detection),
-            );
-          } else if (evt.type === "error") {
-            console.error("[agent] SERVER ERROR event:", evt);
-          } else {
-            console.log("[agent] event:", evt.type);
-          }
+          if (evt.type === "error") console.error("[agent] server error:", evt);
           handleServerEvent(evt);
         } catch {
           /* ignore malformed events */
@@ -290,7 +246,6 @@ export function useRealtimeAgent() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      console.log("[agent] POSTing SDP offer to", REALTIME_URL);
       const sdpRes = await fetch(REALTIME_URL, {
         method: "POST",
         body: offer.sdp,
@@ -299,10 +254,8 @@ export function useRealtimeAgent() {
           "Content-Type": "application/sdp",
         },
       });
-      console.log("[agent] SDP response status:", sdpRes.status);
       if (!sdpRes.ok) {
         const body = await sdpRes.text();
-        console.error("[agent] SDP negotiation failed:", body);
         throw new Error(`WebRTC negotiation failed (${sdpRes.status}): ${body}`);
       }
 
@@ -312,7 +265,6 @@ export function useRealtimeAgent() {
       });
 
       pc.addEventListener("connectionstatechange", () => {
-        console.log("[agent] pc.connectionState =", pc.connectionState);
         if (pc.connectionState === "connected") setStatus("connected");
         if (
           pc.connectionState === "failed" ||
@@ -344,6 +296,9 @@ export function useRealtimeAgent() {
     setStatus("idle");
     setVoiceState("idle");
   }, [cleanup]);
+
+  // Keep the ref pointing at the latest disconnect for end_call teardown.
+  endCallRef.current = disconnect;
 
   // Enumerate mics on mount, and re-list when devices change.
   useEffect(() => {

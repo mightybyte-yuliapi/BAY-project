@@ -4,10 +4,14 @@
 // Nothing else needs to change to add a new capability.
 
 import type { RealtimeToolSchema, ToolDefinition } from "./_define";
-import getProjectStatus from "./getProjectStatus";
+import endCall from "./endCall";
+import lookupComparableProjects from "./lookupComparableProjects";
 
 // 👇 Register tools here.
-export const tools: ToolDefinition<any, any>[] = [getProjectStatus];
+export const tools: ToolDefinition<any, any>[] = [
+  endCall,
+  lookupComparableProjects,
+];
 
 // Lookup by name, used by the backend dispatcher.
 const toolsByName = new Map(tools.map((t) => [t.name, t]));
