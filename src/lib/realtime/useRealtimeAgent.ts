@@ -159,7 +159,12 @@ export function useRealtimeAgent() {
           output: JSON.stringify(output),
         },
       });
-      if (!activeResponseRef.current) {
+      // Ask the model to continue speaking after a tool result — EXCEPT for
+      // end_call. The agent already said its goodbye in the same turn it called
+      // end_call; requesting another response just produces a redundant SECOND
+      // sign-off ("Aaron will follow up..." twice). For end_call we want the
+      // conversation to stop, so we never continue it.
+      if (call.name !== "end_call" && !activeResponseRef.current) {
         send({ type: ClientEvent.CreateResponse });
       }
 
@@ -463,12 +468,16 @@ export function useRealtimeAgent() {
     const payload = JSON.stringify({
       reason,
       contact: contactRef.current,
-      // Use fullText for agent turns so the briefing gets the COMPLETE
-      // transcript even if captions were still revealing when the call ended.
-      transcript: transcriptRef.current.map((t) => ({
-        role: t.role,
-        text: t.fullText ?? t.text,
-      })),
+      // Prefer the COMPLETE text (fullText) but never send an empty string:
+      // fall back to the visible text. (Agent turns carry the full transcript in
+      // fullText; user turns set both. The empty-string trap — fullText "" for
+      // user bubbles — is why lead turns were arriving blank.)
+      transcript: transcriptRef.current
+        .map((t) => ({
+          role: t.role,
+          text: (t.fullText && t.fullText.trim()) || t.text || "",
+        }))
+        .filter((t) => t.text.trim().length > 0),
     });
     try {
       if (reason === "abandoned" && typeof navigator.sendBeacon === "function") {
@@ -632,11 +641,13 @@ function setBubbleText(
     const idx = prev.findIndex((e) => e.itemId === itemId);
     if (idx !== -1) {
       const next = prev.slice();
-      next[idx] = { ...next[idx], text };
+      // Set BOTH text and fullText so the finalize payload (which prefers
+      // fullText) never sends an empty string for user turns.
+      next[idx] = { ...next[idx], text, fullText: text };
       return next;
     }
   }
-  return [...prev, { id: cryptoId(), role, text, itemId }];
+  return [...prev, { id: cryptoId(), role, text, fullText: text, itemId }];
 }
 
 // Remove a bubble by itemId (e.g. a placeholder whose transcript was noise).
