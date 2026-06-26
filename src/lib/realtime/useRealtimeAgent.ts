@@ -105,6 +105,9 @@ export function useRealtimeAgent() {
   // True once end_call fired and we're waiting for the agent's goodbye audio to
   // finish before tearing down — so the outro never gets clipped.
   const endingRef = useRef(false);
+  // Why the call ended, set before teardown so finalize sends the right reason.
+  // "completed" = agent called end_call; "abandoned" = manual hang-up / drop.
+  const endReasonRef = useRef<"completed" | "abandoned">("abandoned");
 
   // Send a JSON event to the model over the data channel.
   const send = useCallback((event: Record<string, unknown>) => {
@@ -160,16 +163,18 @@ export function useRealtimeAgent() {
         send({ type: ClientEvent.CreateResponse });
       }
 
-      // end_call means the agent wrapped up — finalize (email the briefing
-      // from the transcript), let the agent FINISH its goodbye out loud, then
-      // tear down. We mark "ending" and disconnect when the goodbye audio
-      // completes (OutputAudioDone); the timeout is a safety fallback in case
-      // that event never arrives, set long enough not to clip the goodbye.
+      // end_call means the agent wrapped up. Let the goodbye audio FINISH, then
+      // tear down. CRITICAL: do NOT finalize (email the briefing) here — user
+      // transcriptions arrive asynchronously and the last qualifying turns
+      // ("$150K, I'm the COO") may not have committed yet. Snapshotting now
+      // yields a thin transcript and a wrong "too thin to judge" flag. Finalize
+      // happens at teardown (disconnect), by which point late transcripts have
+      // landed.
       if (call.name === "end_call" && ok) {
         console.log("[agent] end_call fired → setCallEnded(true), waiting for goodbye audio");
-        finalizeRef.current?.("completed");
         endingRef.current = true;
         setCallEnded(true);
+        endReasonRef.current = "completed";
         setTimeout(() => {
           console.log("[agent] 15s fallback teardown");
           endCallRef.current?.();
@@ -486,10 +491,12 @@ export function useRealtimeAgent() {
   finalizeRef.current = finalize;
 
   const disconnect = useCallback(() => {
-    // Manual hang-up still files a briefing (treated as an early/abandoned end;
-    // the analysis flags it "unfinished" if too little was captured). If the
-    // agent already finalized via end_call, finalize() is a no-op (guarded).
-    finalize("abandoned");
+    // File the briefing with the reason set by the end path ("completed" when
+    // the agent called end_call, else "abandoned" for a manual hang-up/drop).
+    // finalize is guarded to run once. We finalize HERE (at teardown) rather
+    // than when end_call first fired, so asynchronously-arriving user
+    // transcriptions have landed and the transcript is complete.
+    finalize(endReasonRef.current);
     cleanup();
     setStatus("idle");
     setVoiceState("idle");
