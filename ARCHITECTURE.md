@@ -4,9 +4,14 @@
 
 A voice agent that acts as AppMakers' **first-touch qualification rep**. An
 inbound lead talks to it by voice; the agent qualifies them per the PM's system
-prompt, optionally gives a grounded ballpark estimate, and at the end of the call
-**emails Aaron (COO) a structured qualification report**. Producing that report
-is the mandatory deliverable — a call without it is a failed call.
+prompt, optionally gives a grounded ballpark estimate, and at the end **the team
+is emailed a qualification briefing**. The briefing is the mandatory deliverable.
+
+> **Update (email-agent branch):** the briefing is now generated on the **backend
+> from the call transcript** (AI summary + recommendations + a triage flag), and
+> it's sent on **every** call ending — the agent wrapping up, a manual hang-up, or
+> the lead refreshing/closing the tab or dropping. See **Post-call briefing
+> pipeline** below. `end_call` no longer emails; it's a "call complete" signal.
 
 - **Speech-to-speech:** OpenAI Realtime API (`gpt-realtime-2`) over **WebRTC**.
 - **Security:** the OpenAI key never leaves the server. The backend mints a
@@ -22,6 +27,9 @@ Browser (mic + UI)
    │  ② WebRTC audio  ⇄  OpenAI directly
    │  ③ data channel events (speech state, transcripts, function calls)
    │  ④ function call → POST /api/realtime/tools → backend runs the tool handler
+   │  ⑤ on call end → POST /api/realtime/finalize {transcript, reason, contact}
+   │       (sendBeacon when abandoned, so it survives tab close/refresh)
+   │       → backend analyzes transcript → emails the briefing
    ▼
 OpenAI Realtime (gpt-realtime-2)
 ```
@@ -34,7 +42,7 @@ the backend** (`/api/realtime/tools`). Adding one = one file + one registry line
 
 | Tool | Purpose | Status |
 |---|---|---|
-| `end_call` | Files the structured qualification report and emails Aaron. Mandatory end-of-call action. | ✅ Built (email send is stubbed) |
+| `end_call` | Signal that the conversation is complete. The client detects it and POSTs the transcript to `/api/realtime/finalize`, which generates + emails the briefing. (No longer emails directly.) | ✅ Built |
 | `lookup_comparable_projects` | Grounds a ballpark estimate in real past projects, by feature. Only used when a lead asks cost. Returns `shouldDefer` when there's no real comparable (agent must not invent a number). | ✅ Built (data source is stubbed) |
 
 ## What's DONE (Dev A — me)
@@ -62,17 +70,38 @@ the backend** (`/api/realtime/tools`). Adding one = one file + one registry line
 - **State** — React Query owns server state (token mint, tool calls); the
   realtime hook owns live voice state (listening/speaking/connection).
 
-## What's STUBBED (Dev B — pick up here)
+## Post-call briefing pipeline (Dev B — BUILT, `email-agent` branch)
 
-Each stub is a clean seam: a typed function/constant the agent and tools already
-call. Swap the internals, keep the signature, and nothing upstream changes.
+Replaces the old "end_call emails Aaron" path. Every call ending produces one
+emailed briefing with a triage flag in the subject + three blocks (AI summary, AI
+recommendations, raw transcript) and the lead's contact.
 
-### 1. Email sending — `src/lib/email/send.ts`
-- **Now:** `sendEmail()` logs the rendered email and returns `{ ok: true }`.
-- **Do:** wire a real provider (Resend / SendGrid / SES / Nodemailer). Keep the
-  `EmailMessage` shape and `SendResult` return. Set `AARON_EMAIL` (env
-  `AARON_EMAIL`). The report HTML/text is already rendered for you — just send it.
-- **Coordinates with:** the PM's email service.
+```
+call ends → client finalize(reason)        (useRealtimeAgent.ts)
+  reason "completed" = agent called end_call
+  reason "abandoned" = manual hang-up, connection drop, or tab close/refresh
+  POST /api/realtime/finalize {transcript, reason, contact}   (sendBeacon if abandoned)
+    → analyzeTranscript()  (src/lib/report/analyze.ts)
+        OpenAI chat-completion over the transcript
+        SYSTEM PROMPT = the agent's OWN config.ts instructions, injected verbatim
+        (buildAnalysisSystemPrompt) — one source of truth for qualification rules
+    → renders email  (src/lib/report/callReport.ts)
+    → sendEmail()    (src/lib/email/send.ts → SendGrid v3, REPORT_RECIPIENTS list)
+```
+
+- **Single source of truth for rules:** the post-call analyst does NOT restate
+  qualification criteria — it runs on `agentConfig.instructions`. Edit `config.ts`
+  and both the live call and the briefing change together.
+- **Flags:** `strong` / `mixed` / `weak` (Dev A's taxonomy) + operational
+  `suspicious` / `unfinished` / `too_thin`.
+- **De-dup:** `finalizedRef` guarantees exactly one briefing per call.
+- **Files:** `prompts.ts` (analyst wrapper), `analyze.ts`, `callReport.ts`,
+  `app/api/realtime/finalize/route.ts`, `lib/email/send.ts`. Env + setup:
+  `docs/EMAIL_INTEGRATION.md`.
+- `src/lib/report/render.ts` + the `LeadReport` type are now legacy — used only by
+  `/api/email/test` (a SendGrid delivery smoke test).
+
+## Still STUBBED (Dev B — pick up here)
 
 ### 2. Comparable-projects data — `src/lib/estimates/comparables.ts`
 - **Now:** `findComparables()` matches against a small hardcoded `FIXTURE`.
@@ -98,12 +127,16 @@ call. Swap the internals, keep the signature, and nothing upstream changes.
 
 - **Dev A owns:** what the agent collects, the tool framework, report shape +
   rendering, the realtime/WebRTC client, UI.
-- **Dev B owns:** how email leaves the building (`email/send.ts`), the estimate
-  data source (`estimates/comparables.ts`), and the transcript/tone content
+- **Dev B owns:** the **post-call briefing pipeline** (`report/{prompts,analyze,
+  callReport}.ts`, `api/realtime/finalize`, `email/send.ts`), the estimate data
+  source (`estimates/comparables.ts`), and the transcript/tone content
   (`knowledge.ts → TONE_EXAMPLES`).
 
-The two sides only meet at three typed seams above — you can both work without
-touching each other's files.
+> **Cross-boundary note (email-agent):** the briefing pipeline touches two of Dev
+> A's files — `useRealtimeAgent.ts` (added `finalize()` + transcript posting) and
+> `endCall.ts` (made signal-only). And the analyst depends on `config.ts`
+> (`agentConfig.instructions`). **Pull before pushing realtime-client or
+> config.ts changes.**
 
 ## Running it
 
