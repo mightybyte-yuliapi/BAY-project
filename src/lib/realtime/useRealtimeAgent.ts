@@ -45,6 +45,11 @@ export type TranscriptEntry = {
 
 const REALTIME_URL = "https://api.openai.com/v1/realtime/calls";
 
+// Proactive opener — posted as the agent's first message the moment we connect,
+// so the conversation kicks off instead of waiting for the client to speak.
+const GREETING =
+  "Hi, I'm AppMakers' virtual assistant. What are you looking to build?";
+
 export function useRealtimeAgent() {
   const session = useRealtimeSession();
   const toolCall = useToolCall();
@@ -593,6 +598,17 @@ export function useRealtimeAgent() {
 
   // Tear down on unmount.
   useEffect(() => cleanup, [cleanup]);
+
+  // Post the greeting the instant we're connected (once, only if nothing has
+  // arrived yet), so the agent opens proactively rather than waiting silently.
+  useEffect(() => {
+    if (status !== "connected") return;
+    commitTranscript((prev) =>
+      prev.length > 0
+        ? prev
+        : [{ id: cryptoId(), role: "agent", text: GREETING, fullText: GREETING }],
+    );
+  }, [status, commitTranscript]);
 
   return {
     status,
