@@ -166,10 +166,14 @@ export function useRealtimeAgent() {
       // completes (OutputAudioDone); the timeout is a safety fallback in case
       // that event never arrives, set long enough not to clip the goodbye.
       if (call.name === "end_call" && ok) {
+        console.log("[agent] end_call fired → setCallEnded(true), waiting for goodbye audio");
         finalizeRef.current?.("completed");
         endingRef.current = true;
         setCallEnded(true);
-        setTimeout(() => endCallRef.current?.(), 15000);
+        setTimeout(() => {
+          console.log("[agent] 15s fallback teardown");
+          endCallRef.current?.();
+        }, 15000);
       }
     },
     [send, toolCall],
@@ -203,8 +207,10 @@ export function useRealtimeAgent() {
         const speaking = peak > 4; // ~silence threshold
         if (speaking) quietSince = 0;
         else if (!quietSince) quietSince = now;
-        // End after ~800ms of continuous silence, or a 12s hard cap.
-        if ((quietSince && now - quietSince > 800) || now - startedAt > 12000) {
+        // End after ~1.2s of continuous silence, or a 14s hard cap. (Longer
+        // silence window so a natural mid-goodbye pause doesn't end early.)
+        if ((quietSince && now - quietSince > 1200) || now - startedAt > 14000) {
+          console.log("[agent] goodbye audio drained → teardown");
           ac.close().catch(() => {});
           end();
           return;
@@ -452,9 +458,11 @@ export function useRealtimeAgent() {
     const payload = JSON.stringify({
       reason,
       contact: contactRef.current,
+      // Use fullText for agent turns so the briefing gets the COMPLETE
+      // transcript even if captions were still revealing when the call ended.
       transcript: transcriptRef.current.map((t) => ({
         role: t.role,
-        text: t.text,
+        text: t.fullText ?? t.text,
       })),
     });
     try {
@@ -479,11 +487,16 @@ export function useRealtimeAgent() {
 
   const disconnect = useCallback(() => {
     // Manual hang-up still files a briefing (treated as an early/abandoned end;
-    // the analysis flags it "unfinished" if too little was captured).
+    // the analysis flags it "unfinished" if too little was captured). If the
+    // agent already finalized via end_call, finalize() is a no-op (guarded).
     finalize("abandoned");
     cleanup();
     setStatus("idle");
     setVoiceState("idle");
+    // Always show the ended notice once a real conversation has happened, even
+    // if the model spoke a goodbye without calling end_call — the user must get
+    // closure feedback regardless of how the call ended.
+    if (transcriptRef.current.length > 0) setCallEnded(true);
   }, [cleanup, finalize]);
 
   // Keep the ref pointing at the latest disconnect for end_call teardown.
@@ -519,7 +532,9 @@ export function useRealtimeAgent() {
   useEffect(() => {
     const REVEAL_CPS = 28; // chars/sec while speaking (~natural narration)
     const interval = setInterval(() => {
-      setTranscript((prev) => {
+      // commitTranscript keeps transcriptRef synced so the finalize beacon sees
+      // the revealed text, not a stale snapshot.
+      commitTranscript((prev) => {
         let changed = false;
         const next = prev.map((e) => {
           if (e.role !== "agent" || e.fullText == null) return e;
@@ -537,7 +552,7 @@ export function useRealtimeAgent() {
       });
     }, 60);
     return () => clearInterval(interval);
-  }, [voiceState]);
+  }, [voiceState, commitTranscript]);
 
   // Tear down on unmount.
   useEffect(() => cleanup, [cleanup]);
