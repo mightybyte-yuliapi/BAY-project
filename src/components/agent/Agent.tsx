@@ -13,6 +13,7 @@ import { MicButton } from "./MicButton";
 import { MicSelect } from "./MicSelect";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { TranscriptView } from "./TranscriptView";
+import { CallEndedNotice } from "./CallEndedNotice";
 import { ContactForm, isContactReady, type ContactInfo } from "./ContactForm";
 
 export function Agent() {
@@ -26,6 +27,7 @@ export function Agent() {
     micDevices,
     selectedMicId,
     setSelectedMicId,
+    callEnded,
   } = useRealtimeAgent();
   // Tool calls are logged to the console by the hook, not shown in the UI.
 
@@ -50,10 +52,10 @@ export function Agent() {
       {/* Orb */}
       <VoiceOrb state={voiceState} />
 
-      {/* Contact form — only before a call starts; collapses away once talking
-          so the live UI stays clean. */}
+      {/* Contact form — only before a call starts, and not after it ended;
+          collapses away once talking so the live UI stays clean. */}
       <AnimatePresence initial={false}>
-        {idle && (
+        {idle && !callEnded && (
           <motion.div
             key="contact"
             initial={{ opacity: 0, height: 0 }}
@@ -74,16 +76,21 @@ export function Agent() {
         )}
       </AnimatePresence>
 
-      {/* Primary control + connection status */}
-      <div className="flex flex-col items-center gap-3">
-        <MicButton
-          status={status}
-          onConnect={handleConnect}
-          onDisconnect={disconnect}
-          disabled={!contactReady}
-        />
-        <ConnectionStatus status={status} error={error} />
-      </div>
+      {/* When the call has ended, show the confirmation + next-steps notice
+          instead of the live controls. */}
+      {callEnded ? (
+        <CallEndedNotice onRestart={handleConnect} />
+      ) : (
+        <div className="flex flex-col items-center gap-3">
+          <MicButton
+            status={status}
+            onConnect={handleConnect}
+            onDisconnect={disconnect}
+            disabled={!contactReady}
+          />
+          <ConnectionStatus status={status} error={error} />
+        </div>
+      )}
 
       {/* Transcript — only meaningful once talking */}
       <AnimatePresence>

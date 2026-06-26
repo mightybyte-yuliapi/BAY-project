@@ -31,7 +31,12 @@ export type ConnectionStatus =
 export type TranscriptEntry = {
   id: string;
   role: "user" | "agent";
+  // The visible text. For agent bubbles this is revealed gradually, paced to
+  // the spoken audio (see fullText) so captions track the voice.
   text: string;
+  // For agent bubbles: the COMPLETE transcript received so far. `text` catches
+  // up to this at speech pace while audio plays. (User bubbles ignore it.)
+  fullText?: string;
   // For agent entries: the Realtime item_id this bubble belongs to, so deltas
   // for one response stay together and a new response starts a new bubble.
   itemId?: string;
@@ -46,6 +51,9 @@ export function useRealtimeAgent() {
 
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  // True after the agent has wrapped up the call (end_call) — drives the
+  // "conversation ended" confirmation UI.
+  const [callEnded, setCallEnded] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,6 +102,9 @@ export function useRealtimeAgent() {
   // response.create while one is active, or the server errors with
   // conversation_already_has_active_response (and turns get garbled).
   const activeResponseRef = useRef(false);
+  // True once end_call fired and we're waiting for the agent's goodbye audio to
+  // finish before tearing down — so the outro never gets clipped.
+  const endingRef = useRef(false);
 
   // Send a JSON event to the model over the data channel.
   const send = useCallback((event: Record<string, unknown>) => {
@@ -150,14 +161,61 @@ export function useRealtimeAgent() {
       }
 
       // end_call means the agent wrapped up — finalize (email the briefing
-      // from the transcript), let the agent say goodbye, then tear down.
+      // from the transcript), let the agent FINISH its goodbye out loud, then
+      // tear down. We mark "ending" and disconnect when the goodbye audio
+      // completes (OutputAudioDone); the timeout is a safety fallback in case
+      // that event never arrives, set long enough not to clip the goodbye.
       if (call.name === "end_call" && ok) {
         finalizeRef.current?.("completed");
-        setTimeout(() => endCallRef.current?.(), 8000);
+        endingRef.current = true;
+        setCallEnded(true);
+        setTimeout(() => endCallRef.current?.(), 15000);
       }
     },
     [send, toolCall],
   );
+
+  // After the goodbye's output_audio.done, the <audio> element may still be
+  // draining buffered speech. Watch the live audio level and only tear down once
+  // it's been silent for a beat — so the final sentence is never clipped.
+  const waitForAudioToFinishThenEnd = useCallback(() => {
+    const stream =
+      (audioRef.current?.srcObject as MediaStream | null) ?? null;
+    const end = () => endCallRef.current?.();
+    if (!stream) {
+      setTimeout(end, 1500);
+      return;
+    }
+    try {
+      const ac = new AudioContext();
+      const src = ac.createMediaStreamSource(stream);
+      const analyser = ac.createAnalyser();
+      analyser.fftSize = 512;
+      src.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      let quietSince = 0;
+      const startedAt = performance.now();
+      const tick = () => {
+        analyser.getByteTimeDomainData(data);
+        let peak = 0;
+        for (const v of data) peak = Math.max(peak, Math.abs(v - 128));
+        const now = performance.now();
+        const speaking = peak > 4; // ~silence threshold
+        if (speaking) quietSince = 0;
+        else if (!quietSince) quietSince = now;
+        // End after ~800ms of continuous silence, or a 12s hard cap.
+        if ((quietSince && now - quietSince > 800) || now - startedAt > 12000) {
+          ac.close().catch(() => {});
+          end();
+          return;
+        }
+        requestAnimationFrame(tick);
+      };
+      tick();
+    } catch {
+      setTimeout(end, 2500);
+    }
+  }, []);
 
   // Handle one server event from the data channel.
   const handleServerEvent = useCallback(
@@ -177,6 +235,14 @@ export function useRealtimeAgent() {
           break;
         case ServerEvent.OutputAudioDone:
           setVoiceState("idle");
+          // If we're ending (end_call fired): output_audio.done means the
+          // SERVER finished SENDING audio, but the <audio> element may still
+          // have buffered speech queued. Tearing down now clips the tail
+          // ("...stopped at 'next steps'"). Wait until playback actually drains
+          // before disconnecting. (The email already fired, so there's no rush.)
+          if (endingRef.current) {
+            waitForAudioToFinishThenEnd();
+          }
           break;
         case ServerEvent.ResponseCreated:
           activeResponseRef.current = true;
@@ -200,7 +266,10 @@ export function useRealtimeAgent() {
           // Fill the agent bubble for this response item (created above, or
           // created here if the added event didn't arrive first).
           const itemId = (event as { item_id?: string }).item_id ?? "agent";
-          commitTranscript((prev) => appendDeltaById(prev, itemId, "agent", delta));
+          // Append to fullText (the complete transcript). The reveal loop moves
+          // it into the visible `text` at speech pace so captions track audio.
+          // commitTranscript keeps transcriptRef synced for the finalize beacon.
+          commitTranscript((prev) => appendAgentFullText(prev, itemId, delta));
           break;
         }
         case ServerEvent.InputTranscriptCompleted: {
@@ -226,7 +295,7 @@ export function useRealtimeAgent() {
         }
       }
     },
-    [handleFunctionCall, commitTranscript],
+    [handleFunctionCall, commitTranscript, waitForAudioToFinishThenEnd],
   );
 
   const connect = useCallback(async (contact?: { email?: string; phone?: string }) => {
@@ -237,6 +306,7 @@ export function useRealtimeAgent() {
     setTranscript([]);
     transcriptRef.current = [];
     finalizedRef.current = false;
+    setCallEnded(false);
     // Remember the lead's contact so the briefing email can include it.
     contactRef.current = contact ?? {};
     try {
@@ -369,6 +439,7 @@ export function useRealtimeAgent() {
     micRef.current = null;
     pcRef.current = null;
     activeResponseRef.current = false;
+    endingRef.current = false;
     if (audioRef.current) audioRef.current.srcObject = null;
   }, []);
 
@@ -441,6 +512,33 @@ export function useRealtimeAgent() {
       navigator.mediaDevices.removeEventListener("devicechange", refreshDevices);
   }, [refreshDevices]);
 
+  // Caption reveal loop: advance each agent bubble's visible text toward its
+  // fullText at speech pace, so the transcript tracks the spoken audio instead
+  // of racing ahead. While the agent is speaking we reveal gradually; the
+  // moment it stops, we flush the rest so nothing is ever lost or left hanging.
+  useEffect(() => {
+    const REVEAL_CPS = 28; // chars/sec while speaking (~natural narration)
+    const interval = setInterval(() => {
+      setTranscript((prev) => {
+        let changed = false;
+        const next = prev.map((e) => {
+          if (e.role !== "agent" || e.fullText == null) return e;
+          if (e.text.length >= e.fullText.length) return e;
+          changed = true;
+          if (voiceState === "speaking") {
+            // Reveal a chunk sized to the tick rate (interval is 60ms).
+            const step = Math.max(1, Math.round((REVEAL_CPS * 60) / 1000));
+            return { ...e, text: e.fullText.slice(0, e.text.length + step) };
+          }
+          // Not speaking → flush the remainder immediately.
+          return { ...e, text: e.fullText };
+        });
+        return changed ? next : prev;
+      });
+    }, 60);
+    return () => clearInterval(interval);
+  }, [voiceState]);
+
   // Tear down on unmount.
   useEffect(() => cleanup, [cleanup]);
 
@@ -452,6 +550,7 @@ export function useRealtimeAgent() {
     connect,
     disconnect,
     isConnected: status === "connected",
+    callEnded,
     // Mic device selection.
     micDevices,
     selectedMicId,
@@ -469,24 +568,23 @@ function ensureBubble(
   role: "user" | "agent",
 ): TranscriptEntry[] {
   if (prev.some((e) => e.itemId === itemId)) return prev;
-  return [...prev, { id: cryptoId(), role, text: "", itemId }];
+  return [...prev, { id: cryptoId(), role, text: "", fullText: "", itemId }];
 }
 
-// Append a streaming delta to the bubble for itemId (found anywhere, so a late
-// user message can't fracture an in-progress agent turn). Creates it if absent.
-function appendDeltaById(
+// Append an agent transcript delta to fullText (the complete text). The visible
+// `text` is advanced toward fullText separately, paced to the audio.
+function appendAgentFullText(
   prev: TranscriptEntry[],
   itemId: string,
-  role: "user" | "agent",
   delta: string,
 ): TranscriptEntry[] {
   const idx = prev.findIndex((e) => e.itemId === itemId);
   if (idx !== -1) {
     const next = prev.slice();
-    next[idx] = { ...next[idx], text: next[idx].text + delta };
+    next[idx] = { ...next[idx], fullText: (next[idx].fullText ?? "") + delta };
     return next;
   }
-  return [...prev, { id: cryptoId(), role, text: delta, itemId }];
+  return [...prev, { id: cryptoId(), role: "agent", text: "", fullText: delta, itemId }];
 }
 
 // Set (replace) the text of the bubble for itemId. Creates it at the end if it
