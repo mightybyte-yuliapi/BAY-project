@@ -32,6 +32,9 @@ export type TranscriptEntry = {
   id: string;
   role: "user" | "agent";
   text: string;
+  // For agent entries: the Realtime item_id this bubble belongs to, so deltas
+  // for one response stay together and a new response starts a new bubble.
+  itemId?: string;
 };
 
 
@@ -150,19 +153,40 @@ export function useRealtimeAgent() {
         case ServerEvent.OutputAudioDone:
           setVoiceState("idle");
           break;
+        case ServerEvent.ConversationItemAdded: {
+          // An item entered the conversation IN ORDER. Create its (initially
+          // empty) bubble now so the transcript stays chronological even though
+          // the user's transcription text arrives later than the agent's reply.
+          const item = (event as { item?: { id?: string; role?: string } }).item;
+          const itemId = item?.id;
+          const role = item?.role; // "user" | "assistant"
+          if (itemId && (role === "user" || role === "assistant")) {
+            setTranscript((prev) =>
+              ensureBubble(prev, itemId, role === "user" ? "user" : "agent"),
+            );
+          }
+          break;
+        }
         case ServerEvent.OutputTranscriptDelta: {
           const delta = (event as { delta?: string }).delta ?? "";
-          setTranscript((prev) => appendDelta(prev, "agent", delta));
+          // Fill the agent bubble for this response item (created above, or
+          // created here if the added event didn't arrive first).
+          const itemId = (event as { item_id?: string }).item_id ?? "agent";
+          setTranscript((prev) => appendDeltaById(prev, itemId, "agent", delta));
           break;
         }
         case ServerEvent.InputTranscriptCompleted: {
           const text = (event as { transcript?: string }).transcript ?? "";
-          if (text) {
-            setTranscript((prev) => [
-              ...prev,
-              { id: cryptoId(), role: "user", text },
-            ]);
+          const itemId = (event as { item_id?: string }).item_id;
+          // Drop noise-hallucination transcripts (foreign script, 1-char blips).
+          if (!isLikelyRealSpeech(text)) {
+            // If a placeholder bubble was created for this item, remove it.
+            if (itemId) setTranscript((prev) => removeBubble(prev, itemId));
+            break;
           }
+          // Fill the user's in-order bubble (created on conversation.item.added)
+          // with the transcribed text. Falls back to appending if not found.
+          setTranscript((prev) => setBubbleText(prev, itemId, "user", text.trim()));
           break;
         }
         case ServerEvent.ResponseDone: {
@@ -231,13 +255,18 @@ export function useRealtimeAgent() {
               type: "realtime",
               audio: {
                 input: {
+                  // Must match the server session config (route.ts). server_vad
+                  // with a high threshold rejects background room noise; English
+                  // transcription avoids foreign-language hallucinations.
                   turn_detection: {
-                    type: "semantic_vad",
-                    eagerness: "low",
+                    type: "server_vad",
+                    threshold: 0.85,
+                    prefix_padding_ms: 300,
+                    silence_duration_ms: 900,
                     create_response: true,
-                    interrupt_response: true,
+                    interrupt_response: false,
                   },
-                  transcription: { model: "gpt-4o-transcribe" },
+                  transcription: { model: "gpt-4o-transcribe", language: "en" },
                 },
               },
             },
@@ -395,19 +424,86 @@ export function useRealtimeAgent() {
   };
 }
 
-// Append a streaming transcript delta to the last agent entry (or start one).
-function appendDelta(
+// Create an empty bubble for an item if one doesn't exist yet, preserving the
+// order items were added to the conversation. Keeps the transcript chronological
+// despite the user's transcription text arriving later than the agent's reply.
+function ensureBubble(
   prev: TranscriptEntry[],
-  role: "agent",
+  itemId: string,
+  role: "user" | "agent",
+): TranscriptEntry[] {
+  if (prev.some((e) => e.itemId === itemId)) return prev;
+  return [...prev, { id: cryptoId(), role, text: "", itemId }];
+}
+
+// Append a streaming delta to the bubble for itemId (found anywhere, so a late
+// user message can't fracture an in-progress agent turn). Creates it if absent.
+function appendDeltaById(
+  prev: TranscriptEntry[],
+  itemId: string,
+  role: "user" | "agent",
   delta: string,
 ): TranscriptEntry[] {
-  const last = prev[prev.length - 1];
-  if (last && last.role === role) {
-    return [...prev.slice(0, -1), { ...last, text: last.text + delta }];
+  const idx = prev.findIndex((e) => e.itemId === itemId);
+  if (idx !== -1) {
+    const next = prev.slice();
+    next[idx] = { ...next[idx], text: next[idx].text + delta };
+    return next;
   }
-  return [...prev, { id: cryptoId(), role, text: delta }];
+  return [...prev, { id: cryptoId(), role, text: delta, itemId }];
+}
+
+// Set (replace) the text of the bubble for itemId. Creates it at the end if it
+// was never added (e.g. the added event was missed).
+function setBubbleText(
+  prev: TranscriptEntry[],
+  itemId: string | undefined,
+  role: "user" | "agent",
+  text: string,
+): TranscriptEntry[] {
+  if (itemId) {
+    const idx = prev.findIndex((e) => e.itemId === itemId);
+    if (idx !== -1) {
+      const next = prev.slice();
+      next[idx] = { ...next[idx], text };
+      return next;
+    }
+  }
+  return [...prev, { id: cryptoId(), role, text, itemId }];
+}
+
+// Remove a bubble by itemId (e.g. a placeholder whose transcript was noise).
+function removeBubble(
+  prev: TranscriptEntry[],
+  itemId: string,
+): TranscriptEntry[] {
+  return prev.filter((e) => e.itemId !== itemId);
 }
 
 function cryptoId(): string {
   return crypto.randomUUID();
+}
+
+// Heuristic to reject noise-hallucination transcripts (a stray "Yes", a garbled
+// non-word, or foreign-script junk picked up from a crowded room) before
+// showing them. Real English user turns clear this easily.
+function isLikelyRealSpeech(raw: string): boolean {
+  const text = raw.trim();
+  if (!text) return false;
+  // Must contain at least one ASCII letter — filters pure punctuation/symbols.
+  if (!/[a-zA-Z]/.test(text)) return false;
+  // Reject foreign-script hallucinations: any code point above the Latin
+  // range (0x250) is CJK / Hangul / Cyrillic / Arabic / etc. We lock the
+  // transcriber to English, so these only appear as noise. Accented Latin
+  // (under 0x250) stays allowed.
+  for (let i = 0; i < text.length; i++) {
+    if (text.codePointAt(i)! > 0x250) return false;
+  }
+  // Keep multi-word turns. For a single "word", require ≥2 letters — drops
+  // 1-char blips, not legitimate short replies ("Yes", "No", "Okay").
+  const words = text.split(/\s+/);
+  if (words.length === 1 && text.replace(/[^a-zA-Z]/g, "").length < 2) {
+    return false;
+  }
+  return true;
 }

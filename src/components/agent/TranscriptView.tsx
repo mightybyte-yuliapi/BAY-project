@@ -10,6 +10,10 @@ import { cn } from "@/lib/utils";
 import type { TranscriptEntry } from "@/lib/realtime/useRealtimeAgent";
 
 export function TranscriptView({ entries }: { entries: TranscriptEntry[] }) {
+  // Hide placeholder bubbles that have no text yet (created in-order on
+  // conversation.item.added, filled once transcription/deltas arrive).
+  entries = entries.filter((e) => e.text.trim().length > 0);
+
   if (entries.length === 0) {
     return (
       <p className="text-center text-sm text-zinc-500">

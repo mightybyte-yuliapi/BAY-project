@@ -42,19 +42,28 @@ export async function POST(request: Request) {
       instructions: agentConfig.instructions + contactBlock,
       audio: {
         input: {
-          // Semantic VAD with low eagerness: lets the user finish their
-          // thought (including mid-sentence pauses) before the agent responds,
-          // so it stops cutting in. interrupt_response lets the user barge in
-          // over the agent if they start talking.
+          // server_vad with a raised threshold is more robust in NOISY rooms
+          // than semantic_vad: it only triggers on audio above a loudness bar,
+          // so distant background voices / crosstalk don't get treated as the
+          // user speaking. threshold 0.5 → 0.8 makes it require louder, closer
+          // speech; silence_duration gives a natural end-of-turn pause.
           turn_detection: {
-            type: "semantic_vad",
-            eagerness: "low",
+            type: "server_vad",
+            // Crowded-room tuning. High threshold so only loud, close speech
+            // registers. interrupt_response:false means room noise can NEVER
+            // chop the agent off mid-sentence or make it restart its own turn —
+            // it always finishes cleanly, then listens. (Trade-off: you wait
+            // for it to finish instead of talking over it. Best for reliability
+            // in noise.) Lower threshold toward 0.7 in a quiet room.
+            threshold: 0.85,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 900,
             create_response: true,
-            interrupt_response: true,
+            interrupt_response: false,
           },
-          // gpt-4o-transcribe is more accurate than whisper-1 (fewer
-          // wrong-word transcripts).
-          transcription: { model: "gpt-4o-transcribe" },
+          // Lock transcription to English so background murmur is never
+          // mis-detected as another language (the "아직도?" hallucinations).
+          transcription: { model: "gpt-4o-transcribe", language: "en" },
         },
         output: { voice: agentConfig.voice },
       },

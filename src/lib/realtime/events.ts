@@ -13,6 +13,10 @@ export const ServerEvent = {
   OutputAudioDone: "response.output_audio.done",
   // A response finished — may contain function_call items to execute.
   ResponseDone: "response.done",
+  // An item enters the conversation IN ORDER (before transcription completes).
+  // We use this to lock chronological order for the transcript, then fill text
+  // in later as it streams/transcribes.
+  ConversationItemAdded: "conversation.item.added",
   // Transcripts.
   OutputTranscriptDelta: "response.output_audio_transcript.delta",
   InputTranscriptCompleted:
