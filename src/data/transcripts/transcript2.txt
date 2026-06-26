@@ -1,0 +1,269 @@
+00:00:00 Aaron
+Erin, I'm calling from AppMakers LA.
+
+00:00:02 Kristina
+Yes, hi, how are you. 
+
+00:00:04 Aaron
+I'm good, how's your day going. 
+
+00:00:05 Kristina
+Can you hold on one second, because I had two phone calls coming at the same time. Let me hang up with the other one. Hold on one second.
+
+00:00:12 Aaron
+No worries.
+
+00:00:55 Kristina
+Okay, I'm so sorry about that.
+
+00:00:57 Aaron
+Yeah, no, no worries.
+
+00:00:58 Kristina
+That was very... that was very strange it was like the same like two like two phone calls were coming at the same time and it was like it answered it at the same time it was weird all good all good i was just, yeah i use teams for phones so it's sometimes a little glitchy oh i got you all right i was.
+
+00:01:15 Aaron
+wondering where that you have some very vibey uh hold music going on so i guess that was teams.
+
+00:01:21 Kristina
+Yeah, probably.
+
+00:01:22 Aaron
+All right. Well, cool. I don't want to keep you for too long. Basically, to dive into your query, I saw you're looking to build a native mobile app for this SaaS platform. Basically, we have a discovery process that we do. We call it the R&D. It's a research and design phase. I can dive into that on a call with you. Typically, I would share my screen over Zoom and walk you through how that works. But essentially, to discuss scope and discovery and come up with a very detailed quote, we have that process in place.
+
+00:01:57 Aaron
+We do that with all new projects. But I just wanted to front load with that info and then let you ask me some questions. I'm sure you have just a couple quick things you'd like to learn about us.
+
+00:02:08 Kristina
+Sure. Yeah, no, I... I mean, basically, it's pretty straightforward, I think, you know, we have, we have almost our MVP ready to go. But now we need like the mobile app design and deployed, obviously, as well as the, as well as the kind of user, we kind of need some help with the UI. Yeah. You know, just because so my co partner, and, or, you know, kind of developer, I'm more the business end, he's the technical end of things.
+
+00:02:42 Kristina
+He's, you know, one person, and he's trying to do it all himself. And I said, Listen, we're gonna need to, like, bring in some help with this, because it's just, we need to move it forward. And we need to bring in people who do this part of it all the time. Right. 100%. Yeah, so we both agreed that that would be the best. We tried to hire people, but you probably know how hard that is because they're all, like, fake interviews.
+
+00:03:07 Speaker 3
+Yeah, yeah.
+
+00:03:08 Kristina
+I guess the strangest thing I've ever seen in my life. So we said, you know, there's plenty of options out there, which is why I started kind of calling companies. And you guys are in Los Angeles, right? I see the 818 area code.
+
+00:03:22 Aaron
+Yeah, yeah. We've been remote since COVID, but yeah, we're originally from L.A. Our senior leadership is from L.A., so yeah.
+
+00:03:32 Kristina
+Yeah, I'm in North Carolina now, but I grew up in Ventura, so I'm pretty familiar with the, yeah, yeah. So I saw the 818 come up, I said, oh, that's me.
+
+00:03:41 Aaron
+Yeah, I'm a Valley kid.
+
+00:03:45 Kristina
+Okay, yep, yep. So, as far as, so one of the things that is important to us. Now, on the internet. I'm a developing team.
+
+00:03:56 Speaker 3
+Yep. Our.
+
+00:03:58 Kristina
+is there an option to keep developers onshore versus offshore like or do you use all offshore.
+
+00:04:04 Aaron
+how does that work yeah um we have a mixture so we're obviously we're you know an american company uh you know originally from la we do hire kind of wherever the talent is nowadays so now our our current staff is a mix of people who are offshore and onshore and if you have a preference or a specific concern i'm happy to speak to it about you know like why you you want someone on on onshore but uh if for whatever reason if that's a absolute ironclad requirement we can honor that but you'd have to be flexible with us about resourcing you know so we you know it.
+
+00:04:38 Aaron
+depends like we might have a guy who's a perfect fit for the project who could you know start as a front-end developer for you but maybe they would roll they have to wait for them to be available in a couple weeks whatever so it really just depends on how flexible you are with timeline etc but yes you know we have the we have the manpower to give you someone who's uh who's on shore is, a specific concern that.
+
+00:04:58 Kristina
+you have or you know anything I could speak to on that or the or the front end side I think it's more back end because we have a lot of IP that we kind of want to protect and so it's important that we protect that as best as we can and so because anything that has to do with the scaling solutions that we need to kind of figure out like my developer partner he says you know I just.
+
+00:05:30 Kristina
+There's a lot that he's developed and designed and really put his heart and soul into.
+
+00:05:35 Speaker 3
+Yeah, yeah.
+
+00:05:35 Kristina
+He wants to make sure that doesn't get taken offshore to China or something like that and then copied.
+
+00:05:40 Aaron
+Yeah, totally.
+
+00:05:41 Kristina
+So that's really kind of a big problem. Yeah.
+
+00:05:44 Aaron
+That makes sense.
+
+00:05:45 Kristina
+That's really kind of the problem that rose.
+
+00:05:46 Aaron
+Yeah, yeah, 100%. A couple things on that really quickly. Again, the answer is yes, we can give you someone who's in the States. The other thing I will just add is that just to be clear, we don't pass the buck on anything as a company. We don't hire an external organization or subcontractor or whatever. Everyone is working on American time, understands American business culture, speaks fluent English, et cetera, and we're covered under NDA for all of our work, which applies across the whole staff. So I just wanted to clarify how we run as an operation.
+
+00:06:19 Aaron
+But that being said, yeah, listen, for peace of mind, if you need something to do, if you need someone to be in the States, we can absolutely do that.
+
+00:06:28 Kristina
+Okay. That would be great. I mean, it's something that we can kind of talk, you know, speak to, you know, all together with, you know, Jordan, who's my partner in this. You know, I can understand the concern because it is something that, you know, a lot of the design, the work that goes into it, it's an AI native financial accounting solution that we're coming out with that'll compete against like a QuickBooks or FreshBooks. So, that's kind of why we're like really kind of careful how, you know, kind of who we're showing what, you know, under the hood.
+
+00:07:03 Speaker 3
+Yeah.
+
+00:07:04 Kristina
+So, yeah. Okay. So, that, I mean, yeah, that would be great if we could schedule some time to go into kind of into detail about the, you know, the project and what it is that we're looking for. You know, you can kind of talk to the things that you would need to kind of understand what our goals are. What our goals are with that. Now. I do. So we're engaging with a marketing company right now to help with like our logo design and like color palette, all that kind of stuff, right? I mean, I would imagine, I mean, I would imagine that that would need to be done first before we did anything from a design perspective.
+
+00:07:44 Kristina
+So usually from a time, like timing to start a project like this, what do you usually see? Is it pretty quick? Is it like one month, two months, three months. 
+
+00:07:59 Aaron
+Yeah, so usually from the moment you engage our services to getting like actually writing code, that process is probably about a month. And then in terms of, and I'll explain what that is in a second, that discovery phase. But in terms of actually developing it, so we're doing active development, we're writing code, usually like two to three months is a pretty typical build. You always have to budget another month. And I'm being conservative here. Sometimes it's, a lot faster, but you usually have to budget up to a month for the submission process on.
+
+00:08:33 Aaron
+the Google and the Apple storefronts, because for any number of reasons they might reject the app, and that happens all the time, it really is kind of luck of the draw, whatever rep you're working with, with your submission, so you need to factor in some time to handle those kickbacks and resubmit to the store. But yeah, a typical two to three month window is standard for a lightweight, like, MVP mobile, app.
+
+00:08:57 Kristina
+Yeah, and it's pretty, like, the way that Jordan was, and that he could attest to that way better than me as far as, like, how lightweight it will be, he seems to believe it's very lightweight because of the fact that you're not having to, I guess, grenade it, I don't know. That's the part that I don't know, so. These are the parts that he'll have to speak to.
+
+00:09:13 Aaron
+Sure, yeah.
+
+00:09:14 Kristina
+I know, I say, whenever you open up Visual Studio to try to explain something, my brain just shuts off, like.
+
+00:09:21 Aaron
+No, no, all good, all good. I'm not an engineer myself, but I can speak to anything from a product standpoint for sure, so I hear you.
+
+00:09:32 Kristina
+Yeah, that's too funny.
+
+00:09:33 Aaron
+So the Zoom call, and so we can schedule that whenever it works for you later this week, but essentially what I would go over with you and your partner on the Zoom call would be mostly about our R&D process, our research and design phase. So our, and I'm sure you guys, you know, working with software, you'll appreciate this. You know, we have an exploration period before we start any project. That's how we can scope accurately. That's how we can actually predict what the roadblocks are going to be. That's how we can give you a reliable estimate that we have a high degree of confidence in.
+
+00:10:04 Aaron
+You know, we don't agree to take on a project and just start coding right away because, you know, there's a lot of things that could be left up to assumption. That's how we run into problems with budget and scope creep. So our guarantee against that is we do an R&D. We call it the R&D. It stands for research and design. That is that, like, about one-month phase. Sometimes it's faster than that. It really depends on you, how quickly your team can move with us. But it takes about three to four months. And then we do, you know, all the user flows. defined in Figma. We do high fidelity UX and UI. We lock those into place. Then we research what.
+
+00:10:38 Aaron
+the tech stack is going to be. In your case, we're integrating with an existing backend and talking about scaling it together. So we would have probably a review of the existing code base on the backend, get aligned with your team. And then at the end of the R&D, we present, what our technical approach would be, what that tech stack looks like, and then. the actual estimates. So highly detailed estimates, basically the quote that we're ready to go into development with.
+
+00:11:08 Kristina
+Okay. Okay. And so at that point, because I know we're going to be engaging our beta testers, but we can engage beta testers before any of that really starts because the beta test process is to kind of pick out like the functionality.
+
+00:11:21 Aaron
+Totally. Yeah, you can do early user acceptance testing with just the FIGMAs. Like we can put together an interactive prototype, like a zero code prototype, which is just clickable and you put it in the hands of users and they go through the user flows and they can give you feedback on the UX from that.
+
+00:11:37 Kristina
+Okay. Yeah, that would be kind of interesting to see because I know like for the desktop version, which is just, you know, it's like a React site, you know, it just doesn't work properly on a mobile device, like it is on your phone. So, I know, like, I think on a Google phone or whatever, it works fine, but iOS, nope, it doesn't, like, my buttons cover everything, so, yeah, so I think, you know, we can still do that, because we were thinking mid to late January, for at least the beta testers, we have a small group of beta testers, for the online, like, you know, go to your computer and use it, right, just kind of phone calls, run some processes, tell us what you hate, right, and that'll be, but that's not really,
+
+00:12:22 Kristina
+we're not really looking for user experience at that point, we're just looking for purely, like, functionality. Makes sense. So, the AI is working the way that we were hoping, things like that, so, okay, so that could long out then, because I think our goal, our target would be to launch the MVP for, you know, to the public for, you know, bringing on, obviously, subscribers, like early March. uh that would be the hope that we would try to aim for yeah that's that's reasonable i would say.
+
+00:12:58 Aaron
+i mean obviously not knowing anything really concrete about the user flows or you know how many screens we're talking about developing i would still say we should probably get going on the rnd sooner than later like if you want to hit that deadline i would recommend we you know have our zoom call either you know today uh sorry uh tomorrow or the next day uh try to lock in an rnd if you want to move forward with us um you know probably early next week and then we can have that kickoff call uh as soon as you engage our services but i would probably get started on the rnd before the holidays begin yeah no i agree i think that.
+
+00:13:33 Kristina
+would probably be smart okay let me see so i guess then yeah because jordan's working 100% on this full time um but it looks like and you're in los angeles area so you're west coast.
+
+00:13:52 Aaron
+How do we like do you have like a calendar that we yeah for the record out? All right, you said you're in the Carolinas. Where did you say you were? Yeah. Yeah, I'm, Yeah, I'm in New York actually. So so we're on that you and I are in the same time zone, I think so. That's good, Yeah, But yeah, let's uh, so so I think the easiest thing I know you have to coordinate with your schedule and your partner schedule Um, I can send you so is is a case Smith at go dash YP calm. Is that the right email for you?
+
+00:14:26 Aaron
+Yeah, okay, cool So I will, Send you my calendly now and you can share that with your partner Whatever is easy or you can of course just reply to my email and we can do it the old-fashioned way But my calendly will be the fastest way to book a call with me.
+
+00:14:44 Kristina
+Got it. Okay. And how long, you said it was like about like a 30 to 45 minute or is it an hour. 
+
+00:14:50 Aaron
+Yeah, like 45 minutes at the most typically, yeah.
+
+00:14:54 Kristina
+Okay. Yeah, because I'm looking at tomorrows and Thursdays and I'll need to choose wisely because I've got a hefty calendar the rest of the week. Everybody wants everything done by the end of the year. It's so funny.
+
+00:15:07 Aaron
+Yeah. Yeah, we're in that stretch now. We're in that final stretch.
+
+00:15:12 Kristina
+Yeah, it's crazy. So, okay. No, this is great.
+
+00:15:17 Aaron
+Awesome.
+
+00:15:18 Kristina
+This is great. And I definitely appreciate you calling me back so quickly.
+
+00:15:21 Aaron
+Yeah. Yeah. The timing was good. I was just at my desk looking at my inbox and that came through. So, I'm happy you were free as well. I will send you... Yeah, go ahead.
+
+00:15:33 Kristina
+So, I'm curious because I have absolutely no idea. what to expect sure so we do have we do have some pretty seed investors uh so you know we do know that obviously like it's going to be probably more expensive than hiring people but i really am at the point where i just don't want to hire anybody well after that experience yeah yeah so, like what is it normally and i know you can't give me like a i'm just thinking in general terms are.
+
+00:16:04 Kristina
+we talking like you know do you see mobile apps and use ui design like because it's literally like uh like probably three or four pages um maybe to five pages on the web at like because it's just a it's a totally different like you have to see it right because it's all very chat based um so it's a kind of like singular page um yeah like we can kind of give you an idea to show you but um.
+
+00:16:37 Kristina
+but it's like maybe five pages online and then like the the web app would basically be just, Pinging that and bringing it to the phone, right? Yeah. In the same user experience, just the compressed version.
+
+00:16:48 Aaron
+It obviously, yeah, so the usual caveat, you know, I can't, definitely don't hold me to this, but depending on how much of the back end is still going to be on your side of things, and, like, you know, you could work with us, we could have a back end engineer who's, you know, assigned to the project on, like, a very part-time basis to, like, you know, do some adjustments or advise on how to adjust the back end to be, you know, talking to the mobile app. If we're really owning just the front end and it's just, like, a few different, you know, under 10 screens,
+
+00:17:20 Aaron
+it could potentially be lighter weight. Lighter weight with us is, like, 20 to 30K. Usually we are a full-stop shop, so, you know, usually we're doing the back end completely ourselves. And then a typical MVP that we build would be somewhere between, like, 30 to 70. I think we could get on the lighter end of that for you guys, assuming, you know, not owning most or all of the back end, we're just doing the front end and there's a relatively small amount of screens. Our rate, and we're a T&M firm, Time and Materials, which I'm sure you.
+
+00:17:54 Aaron
+understand, typical for software, we are $130 an hour for engineering. I'll send all this to you after our call on Zoom, but it's $130 an hour for engineering, $140 an hour for product, $80 for design, $50 for QA. If we're looking at a month to two months of work for mostly just front end, it's probably, broadly speaking, $20,000 to $40,000 range. That's my guess.
+
+00:18:25 Kristina
+Okay, okay. Yeah, so I wasn't sure, do I expect like 30,000 or 130,000. 
+
+00:18:32 Aaron
+Yeah, well, based on what you've told me, I'm thinking it's on the lower end of what we normally do for like a smaller scale MVP, based on what you've told me. Obviously, you know, if we get into the, if we, you know, again, I'm not an engineer, but if we get into the R&D together, and then our engineer who's doing the R&D with your team comes back to me and says, hey, you know, we basically have to like overhaul a big part of their back end, and their guy doesn't know how to do it, and we have to do it, you know, of course, now suddenly we're talking about a different scale of scope,
+
+00:19:03 Aaron
+but assuming the things that we've just talked about, yeah, I don't, it doesn't sound like a huge project for us.
+
+00:19:10 Kristina
+Okay, yeah, okay, that's good to know, and I think from the back end perspective, it's like, so George, that's my partner, he says, you know, I could do it, he says, but I've never scaled. I've never scaled to production for potential. viral like if it goes viral or something yeah that's my biggest fear is like okay if it did like i mean yes great but that's my biggest fear with this is that if it if we overload the servers and they don't scale properly and for sure then you're you're done yeah for sure yeah for reference.
+
+00:19:42 Aaron
+we try to usually build our infrastructure to take on like up to 50 000 um and then if you blow past that i mean then we go in and we have to redo things but also uh you know that's a very good.
+
+00:19:54 Kristina
+problem to have right i mean and i mean by all means that's all going to be completely dependent i'm sure on the marketing effort um but at the end of the day i'm sitting here thinking okay well that could that is worst case scenario but i do want to plan i'm very conservative my background is in finance so, Like, I always think of, like, the worst possible scenario, and, like, we've got a plan to that. Totally. That's what we've got a plan to.
+
+00:20:18 Aaron
+Yeah, absolutely. Absolutely.
+
+00:20:21 Kristina
+Yeah. So, okay. Well, great. Now, that's awesome. I'll go ahead and reach out to Jordan, and we'll take a look at your calendar and graph some time. Yeah, so I'm excited to have the conversation and kind of get an idea of what it's going to take.
+
+00:20:36 Aaron
+Yeah, likewise. It was good to talk to you, Christina. I'll send you that email now. Now, I'll also send you, if you want, for peace of mind, I'll send you our mutual NDA. You don't have to sign it, but sometimes people like to before the Zoom call.
+
+00:20:48 Kristina
+We do, yeah. Cool.
+
+00:20:50 Aaron
+And then, yeah, I'll wait to hear from you guys.
+
+00:20:54 Kristina
+Awesome. Great. Well, thank you so much. It was Aaron. 
+
+00:20:57 Aaron
+Yes. Yeah, yeah.
+
+00:20:58 Kristina
+Okay, yeah, so I just want to write that back, because I'll forget.
+
+00:21:01 Aaron
+For sure.
+
+00:21:02 Kristina
+I'm not in sales, so.
+
+00:21:03 Aaron
+Yeah, no problem, no problem. Yeah, I'm Aaron, it's A-A-R-O-N, I'm the COO of AppMakers, and yeah, I'm looking forward to talking to you guys soon.
+
+00:21:13 Kristina
+Great, thank you so much, Aaron.
+
+00:21:15 Aaron
+All right, take care, have a good one.
+
+00:21:18 Kristina
+You too. Bye.
