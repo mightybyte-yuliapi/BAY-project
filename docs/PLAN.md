@@ -54,6 +54,41 @@ Next.js route handler  ◄──────  tools: captureLeadField, scoreLead
 | 4. Summary + CRM | On session end, summarize collected object + transcript → write a CRM row. |
 | 5. Handoff | `handoffToHuman` tool (fires Slack/SMS) **or** an Agents-SDK handoff to a "specialist" agent. Strong live-demo beat. |
 
+## 3b. As-built architecture (team scaffolding — reviewed 2026-06-26)
+
+The team already shipped a **working voice loop**. Where this differs from the original §2–3 plan, **this section wins**.
+
+**Key deviation: NO `@openai/agents` SDK.** The team hand-rolled raw WebRTC + the data-channel event stream. Fewer deps, full control. Ignore the SDK references in §3/§4 — we author against the raw event protocol instead.
+
+**Flow as built:**
+```
+Browser (useRealtimeAgent) ──WebRTC──► api.openai.com/v1/realtime/calls
+   │  POST /api/realtime/session  → mints ephemeral client_secret (server holds OPENAI_API_KEY)
+   │  data channel "oai-events"   → transcripts, speech state, function calls
+   └─ on function_call → POST /api/realtime/tools → runs handler → result fed back over data channel
+```
+
+**File map (where things live):**
+| Concern | File |
+|---|---|
+| Persona / system prompt / voice / model | `src/agent/config.ts` (`agentConfig.instructions`, `voice: marin`, `model: gpt-realtime-2`) |
+| Tool authoring | `src/agent/tools/<name>.ts` → `tool({ name, description, parameters (JSON Schema), handler })` |
+| Tool registry | `src/agent/tools/index.ts` (import + add to `tools[]`) |
+| Token mint route | `src/app/api/realtime/session/route.ts` (sends session config incl. tool schemas) |
+| Tool exec route (backend) | `src/app/api/realtime/tools/route.ts` (`runTool` dispatch) |
+| WebRTC client hook | `src/lib/realtime/useRealtimeAgent.ts` |
+| Event name constants | `src/lib/realtime/events.ts` |
+| UI | `src/components/agent/*` — VoiceOrb, MicButton, MicSelect, ConnectionStatus, TranscriptView, ToolActivity |
+| Session/tool React Query hooks | `src/lib/queries/{useRealtimeSession,useToolCall}.ts` |
+
+**Already working:** ephemeral-token mint, WebRTC connect, mic selection (skips virtual mics), semantic-VAD turn detection, whisper-1 input transcription, live transcript (user + agent), tool-call relay + ToolActivity panel, voice-state orb.
+
+**Tools today:** only one example — `get_project_status` (stub). Our lead tools don't exist yet.
+
+**⚠️ Branding mismatch to resolve:** `config.ts` + `Agent.tsx` brand the agent as **"Mightybyte"**, but our knowledge base is **AppMakersLA**. Pick one identity before wiring the prompt (see Open Decisions §8).
+
+**Gap — lead state:** tool handlers are stateless per call. Accumulating a `Lead` object across a conversation needs either server-side session state or client-side accumulation. Decide before building `captureLeadField`.
+
 ## 4b. Company knowledge base (AppMakersLA)
 
 The agent represents **AppMakersLA** and qualifies inbound leads for app/web/software projects. It needs to know who we are so it can answer "what do you do?", speak credibly, and qualify against real services.
@@ -120,12 +155,16 @@ type Lead = {
 - [ ] Decide **handoff channel** — Slack webhook is the easiest impressive demo
 
 ### Scaffold
-- [x] **Scrape `appmakersla.com` → `src/data/company-kb.md`** (curated, one-time) — done 2026-06-26; condensed prompt summary still TODO
-- [ ] `npm install @openai/agents zod`
-- [ ] Server route: `POST /api/realtime/session` → mint ephemeral token
-- [ ] Browser: `RealtimeAgent` + `RealtimeSession`, connect over WebRTC, mic permission UI
-- [ ] Define tools: `captureLeadField`, `scoreLead`, `handoffToHuman`
-- [ ] Live transcript + lead-card UI (shows BANT filling in real time)
+- [x] **Scrape `appmakersla.com` → `src/data/company-kb.md`** — done 2026-06-26
+- [x] ~~`npm install @openai/agents zod`~~ — N/A, team went raw-WebRTC (no SDK)
+- [x] Server route `POST /api/realtime/session` → mint ephemeral token — **done by team**
+- [x] Browser WebRTC connect + mic permission/selection UI — **done by team**
+- [x] Live transcript (user + agent) + tool-activity panel — **done by team**
+- [ ] **Resolve branding** (Mightybyte vs AppMakers) and write real `agentConfig.instructions`
+- [ ] **Wire company KB** into instructions (condensed) and/or a `lookup_company_info` tool
+- [ ] Define lead tools: `capture_lead_field`, `score_lead`, `handoff_to_human` (replace `get_project_status`)
+- [ ] **Lead state** strategy — server session vs client accumulation
+- [ ] Lead-card UI (shows qualification fields filling in real time)
 - [ ] End-of-call summary + score + next steps
 - [ ] CRM write (real or faked)
 - [ ] Handoff trigger (Slack/SMS) with on-stage notification
@@ -135,6 +174,8 @@ type Lead = {
 
 ## 8. Open decisions
 
+- **Agent identity:** ✅ **RESOLVED — AppMakersLA.** Rebrand `config.ts`/`Agent.tsx` away from "Mightybyte"; agent represents AppMakers using `company-kb.md`.
+- **Lead state:** server-side session store vs client-side accumulation across the call.
 - **Input channel:** browser mic (recommended for hackathon) vs. real phone via Twilio (more impressive, more risk).
 - **CRM:** real integration vs. faked table.
 - **Handoff channel:** Slack webhook / SMS (Twilio) / calendar invite.

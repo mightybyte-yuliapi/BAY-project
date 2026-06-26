@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Leadership Retreat",
-  description: "Leadership Retreat",
+  title: "AppMakers — AI Lead Agent",
+  description: "AI voice agent that qualifies inbound leads for AppMakers USA.",
 };
 
 export default function RootLayout({

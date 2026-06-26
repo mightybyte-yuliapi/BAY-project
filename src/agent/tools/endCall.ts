@@ -8,7 +8,7 @@
 import { tool } from "./_define";
 import type { LeadReport } from "@/lib/report/types";
 import { reportHtml, reportSubject, reportText } from "@/lib/report/render";
-import { sendEmail, AARON_EMAIL } from "@/lib/email/send";
+import { sendEmail, REPORT_RECIPIENTS } from "@/lib/email/send";
 
 export default tool<LeadReport>({
   name: "end_call",
@@ -84,7 +84,7 @@ export default tool<LeadReport>({
   },
   async handler(report) {
     const result = await sendEmail({
-      to: AARON_EMAIL,
+      to: REPORT_RECIPIENTS,
       subject: reportSubject(report),
       html: reportHtml(report),
       text: reportText(report),
@@ -93,6 +93,6 @@ export default tool<LeadReport>({
     if (!result.ok) {
       return { ok: false, message: "Report could not be sent.", error: result.error };
     }
-    return { ok: true, message: "Report filed and emailed to Aaron." };
+    return { ok: true, message: "Report filed and emailed to the team." };
   },
 });
