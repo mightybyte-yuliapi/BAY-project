@@ -34,11 +34,6 @@ export type TranscriptEntry = {
   text: string;
 };
 
-export type ToolEvent = {
-  callId: string;
-  name: string;
-  status: "running" | "done" | "error";
-};
 
 const REALTIME_URL = "https://api.openai.com/v1/realtime/calls";
 
@@ -49,7 +44,6 @@ export function useRealtimeAgent() {
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  const [toolEvents, setToolEvents] = useState<ToolEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Available microphones + the one the user picked.
@@ -90,12 +84,10 @@ export function useRealtimeAgent() {
   }, []);
 
   // Run a model function call on our backend and feed the result back.
+  // Tool calls are logged to the console only — not surfaced in the UI.
   const handleFunctionCall = useCallback(
     async (call: { name: string; call_id: string; arguments: string }) => {
-      setToolEvents((prev) => [
-        ...prev,
-        { callId: call.call_id, name: call.name, status: "running" },
-      ]);
+      console.log(`[tool] → ${call.name}`, call.arguments);
       let output: unknown;
       let ok = true;
       try {
@@ -106,13 +98,7 @@ export function useRealtimeAgent() {
         ok = false;
         output = { error: err instanceof Error ? err.message : "Tool failed." };
       }
-      setToolEvents((prev) =>
-        prev.map((t) =>
-          t.callId === call.call_id
-            ? { ...t, status: ok ? "done" : "error" }
-            : t,
-        ),
-      );
+      console.log(`[tool] ← ${call.name} ${ok ? "ok" : "error"}`, output);
       // Return the result to the model, then ask it to continue speaking.
       send({
         type: ClientEvent.CreateConversationItem,
@@ -136,6 +122,9 @@ export function useRealtimeAgent() {
   // Handle one server event from the data channel.
   const handleServerEvent = useCallback(
     (event: { type: string } & Record<string, unknown>) => {
+      // Ignore any late events once the call is being/has been torn down, so a
+      // straggling audio event can't re-trigger the orb after End.
+      if (!pcRef.current) return;
       switch (event.type) {
         case ServerEvent.SpeechStarted:
           setVoiceState("listening");
@@ -175,13 +164,13 @@ export function useRealtimeAgent() {
     [handleFunctionCall],
   );
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (contact?: { email?: string; phone?: string }) => {
     if (status === "connecting" || status === "connected") return;
     setError(null);
     setStatus("connecting");
     try {
-      // 1. Mint an ephemeral token from our backend.
-      const { clientSecret } = await session.mutateAsync();
+      // 1. Mint an ephemeral token from our backend (with the lead's contact).
+      const { clientSecret } = await session.mutateAsync(contact);
       const ephemeralKey = clientSecret.value;
 
       // 2. Set up the peer connection + audio playback element.
@@ -320,7 +309,6 @@ export function useRealtimeAgent() {
     status,
     voiceState,
     transcript,
-    toolEvents,
     error,
     connect,
     disconnect,

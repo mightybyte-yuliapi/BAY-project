@@ -128,6 +128,41 @@
     @apply font-sans;
   }
 }
+/* ── Mightybyte brand theme ─────────────────────────────────────────────── */
+:root {
+  --mb-pink: #ea175c;
+  --mb-pink-soft: #ff4d85;
+}
+
+/* Black → grey gradient page background, with two soft pink glows. */
+.bg-mb-bg {
+  background-color: #000;
+  background-image:
+    radial-gradient(
+      60rem 60rem at 75% -10%,
+      rgba(234, 23, 92, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      50rem 50rem at 10% 110%,
+      rgba(234, 23, 92, 0.12),
+      transparent 55%
+    ),
+    linear-gradient(160deg, #0b0b0d 0%, #161618 45%, #1f1f23 100%);
+  background-attachment: fixed;
+}
+
+/* Brand color utilities for use in components. */
+.text-mb-pink {
+  color: var(--mb-pink);
+}
+.bg-mb-pink {
+  background-color: var(--mb-pink);
+}
+.border-mb-pink {
+  border-color: var(--mb-pink);
+}
+
 /* Voice orb animations (used by components/agent/VoiceOrb) */
 @keyframes breathe {
   0%, 100% { transform: scale(1); opacity: 0.5; }

@@ -16,15 +16,15 @@ export function MicSelect({ devices, selectedId, onChange, disabled }: Props) {
 
   return (
     <label className="flex w-full max-w-sm flex-col gap-1 text-sm">
-      <span className="text-zinc-500">Microphone</span>
+      <span className="text-zinc-400">Microphone</span>
       <select
         value={selectedId}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-800 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        className="rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-zinc-100 outline-none transition-colors focus:border-[#ea175c] disabled:opacity-50"
       >
         {devices.map((d) => (
-          <option key={d.deviceId} value={d.deviceId}>
+          <option key={d.deviceId} value={d.deviceId} className="bg-zinc-900">
             {d.label || "Microphone"}
           </option>
         ))}
