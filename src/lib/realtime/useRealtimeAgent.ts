@@ -465,37 +465,51 @@ export function useRealtimeAgent() {
   const finalize = useCallback((reason: "completed" | "abandoned") => {
     if (finalizedRef.current) return;
     finalizedRef.current = true;
-    const payload = JSON.stringify({
-      reason,
-      contact: contactRef.current,
-      // Prefer the COMPLETE text (fullText) but never send an empty string:
-      // fall back to the visible text. (Agent turns carry the full transcript in
-      // fullText; user turns set both. The empty-string trap — fullText "" for
-      // user bubbles — is why lead turns were arriving blank.)
-      transcript: transcriptRef.current
+
+    // Build + send the payload from INSIDE a setTranscript updater, where `cur`
+    // is guaranteed to be the freshest committed state — the exact array the UI
+    // renders. This eliminates the drift between what's on screen and what gets
+    // emailed (the mirror ref could lag pending updaters). We return `cur`
+    // unchanged; this is a read, not a mutation.
+    setTranscript((cur) => {
+      const turns = cur
         .map((t) => ({
           role: t.role,
-          text: (t.fullText && t.fullText.trim()) || t.text || "",
+          // Serialize EXACTLY what the app shows: prefer the complete fullText
+          // (agent turns), always fall back to visible text — never blank.
+          text: ((t.fullText && t.fullText.trim()) || t.text || "").trim(),
         }))
-        .filter((t) => t.text.trim().length > 0),
-    });
-    try {
-      if (reason === "abandoned" && typeof navigator.sendBeacon === "function") {
-        navigator.sendBeacon(
-          "/api/realtime/finalize",
-          new Blob([payload], { type: "application/json" }),
-        );
-      } else {
-        void fetch("/api/realtime/finalize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: payload,
-          keepalive: true,
-        });
+        .filter((t) => t.text.length > 0);
+
+      console.log(
+        "[finalize] transcript snapshot:",
+        turns.map((t) => `${t.role}: ${t.text.slice(0, 40)}`),
+      );
+
+      const payload = JSON.stringify({
+        reason,
+        contact: contactRef.current,
+        transcript: turns,
+      });
+      try {
+        if (reason === "abandoned" && typeof navigator.sendBeacon === "function") {
+          navigator.sendBeacon(
+            "/api/realtime/finalize",
+            new Blob([payload], { type: "application/json" }),
+          );
+        } else {
+          void fetch("/api/realtime/finalize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true,
+          });
+        }
+      } catch {
+        /* best-effort: never block teardown on the email */
       }
-    } catch {
-      /* best-effort: never block teardown on the email */
-    }
+      return cur;
+    });
   }, []);
   finalizeRef.current = finalize;
 
