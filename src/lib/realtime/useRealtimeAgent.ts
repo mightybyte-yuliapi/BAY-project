@@ -526,33 +526,44 @@ export function useRealtimeAgent() {
   }, [refreshDevices]);
 
   // Caption reveal loop: advance each agent bubble's visible text toward its
-  // fullText at speech pace, so the transcript tracks the spoken audio instead
-  // of racing ahead. While the agent is speaking we reveal gradually; the
-  // moment it stops, we flush the rest so nothing is ever lost or left hanging.
+  // fullText at a steady speech pace, so the transcript tracks the spoken audio
+  // instead of racing ahead. We ALWAYS reveal gradually (never instant-dump),
+  // regardless of voiceState — otherwise a second message that arrives during
+  // the brief idle gap after a tool call would flush its whole text in silence
+  // before its audio starts. Only the final, no-longer-active bubble is flushed
+  // to completion (below), so nothing is ever left hanging.
   useEffect(() => {
-    const REVEAL_CPS = 28; // chars/sec while speaking (~natural narration)
+    const REVEAL_CPS = 28; // chars/sec (~natural narration speed)
     const interval = setInterval(() => {
       // commitTranscript keeps transcriptRef synced so the finalize beacon sees
       // the revealed text, not a stale snapshot.
       commitTranscript((prev) => {
+        // The last agent bubble is the "active" one; earlier completed bubbles
+        // should already be fully shown.
+        let lastAgentIdx = -1;
+        for (let i = prev.length - 1; i >= 0; i--) {
+          if (prev[i].role === "agent") {
+            lastAgentIdx = i;
+            break;
+          }
+        }
         let changed = false;
-        const next = prev.map((e) => {
+        const step = Math.max(1, Math.round((REVEAL_CPS * 60) / 1000));
+        const next = prev.map((e, i) => {
           if (e.role !== "agent" || e.fullText == null) return e;
           if (e.text.length >= e.fullText.length) return e;
           changed = true;
-          if (voiceState === "speaking") {
-            // Reveal a chunk sized to the tick rate (interval is 60ms).
-            const step = Math.max(1, Math.round((REVEAL_CPS * 60) / 1000));
-            return { ...e, text: e.fullText.slice(0, e.text.length + step) };
-          }
-          // Not speaking → flush the remainder immediately.
-          return { ...e, text: e.fullText };
+          // Flush any older agent bubble (not the active one) instantly so a
+          // superseded turn never sits half-revealed.
+          if (i !== lastAgentIdx) return { ...e, text: e.fullText };
+          // Active bubble: reveal a chunk sized to the tick rate (60ms).
+          return { ...e, text: e.fullText.slice(0, e.text.length + step) };
         });
         return changed ? next : prev;
       });
     }, 60);
     return () => clearInterval(interval);
-  }, [voiceState, commitTranscript]);
+  }, [commitTranscript]);
 
   // Tear down on unmount.
   useEffect(() => cleanup, [cleanup]);
