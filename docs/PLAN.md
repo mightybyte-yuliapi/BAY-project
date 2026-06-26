@@ -120,7 +120,7 @@ type Lead = {
 - [ ] Decide **handoff channel** — Slack webhook is the easiest impressive demo
 
 ### Scaffold
-- [ ] **Scrape `appmakersla.com` → `src/data/company-kb.md`** (curated, one-time) + condensed prompt summary
+- [x] **Scrape `appmakersla.com` → `src/data/company-kb.md`** (curated, one-time) — done 2026-06-26; condensed prompt summary still TODO
 - [ ] `npm install @openai/agents zod`
 - [ ] Server route: `POST /api/realtime/session` → mint ephemeral token
 - [ ] Browser: `RealtimeAgent` + `RealtimeSession`, connect over WebRTC, mic permission UI
