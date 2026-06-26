@@ -1,79 +1,149 @@
 // src/lib/estimates/comparables.ts
 //
-// ─────────────────────────────────────────────────────────────────────────
-// STUB — owned by the PM / estimate-data dev.
-// The agent grounds ballpark ranges in REAL past projects. The PM will send
-// estimate info (and a scraped .md of shipped work). For now this is a small
-// hardcoded fixture. Replace `findComparables` internals to read the real
-// source — keep the function signature and return shape so the tool/agent
-// don't change.
-// ─────────────────────────────────────────────────────────────────────────
+// The estimate reference data. The agent grounds ballpark ranges in real past
+// AppMakers projects (and a few generic category averages). Source of truth is
+// src/data/appmakers_project_reference.csv, which the team maintains.
+//
+// This module only RETRIEVES and ranks rows. It does NOT do the pricing math —
+// the agent applies the spoken-range rules from the system prompt (the 20%
+// optimistic-MVP haircut on real projects, rounding to 10K, floor, etc.) so
+// that logic lives in one place and the raw numbers never reach the lead.
+//
+// Server-only (imported by the tools dispatcher), so reading the file at module
+// load is fine.
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 export type Comparable = {
-  // Short name of a past project shape.
-  kind: string;
-  // Feature keywords used to match against what the lead describes.
-  keywords: string[];
-  // Honest range from real shipped work. High end carries "+".
-  range: string;
-  // One-line description for the agent to reference.
-  note: string;
+  // Short label for the kind of project.
+  projectType: string;
+  // Full scope description (used both for matching and as agent reference).
+  scope: string;
+  // Raw reference numbers from the file. The agent converts these into a
+  // spoken range per the prompt rules — they are NEVER surfaced to the lead.
+  low: number;
+  high: number;
+  // "yes" = a specific shipped project (apply the 20% low-end haircut, may be
+  // referenced as real work). "no" = a generic category average (speak as-is,
+  // do NOT claim as a specific build).
+  isRealProject: boolean;
 };
 
-// TODO(estimate-data): replace with real comparables from the scraped .md.
-const FIXTURE: Comparable[] = [
-  {
-    kind: "Dating / matching app",
-    keywords: ["dating", "match", "swipe", "profiles", "dm", "messaging"],
-    range: "$50K–$80K+",
-    note: "Tinder-style: matching, swipe, profiles, DMs, admin panel.",
-  },
-  {
-    kind: "Marketplace (two-sided)",
-    keywords: ["marketplace", "buyers", "sellers", "listings", "payments"],
-    range: "$70K–$120K+",
-    note: "Two-sided marketplace with listings, payments, ratings.",
-  },
-  {
-    kind: "On-demand services app",
-    keywords: ["on-demand", "booking", "delivery", "drivers", "tracking"],
-    range: "$60K–$110K+",
-    note: "Uber-style: booking, real-time tracking, driver + customer apps.",
-  },
-  {
-    kind: "SaaS dashboard / B2B tool",
-    keywords: ["saas", "dashboard", "b2b", "analytics", "admin", "subscription"],
-    range: "$60K–$130K+",
-    note: "Web SaaS with auth, billing, dashboards, role-based admin.",
-  },
-  {
-    kind: "AI-powered product",
-    keywords: ["ai", "ml", "llm", "chatbot", "recommendation", "vision"],
-    range: "$80K–$150K+",
-    note: "Custom AI feature layered on a product; scope varies widely.",
-  },
-];
+// Minimal CSV parser that handles quoted fields containing commas/newlines.
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field);
+      field = "";
+    } else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      if (field !== "" || row.length) {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = "";
+      }
+    } else {
+      field += c;
+    }
+  }
+  if (field !== "" || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
+
+// Load + parse the reference file once at module load.
+const COMPARABLES: Comparable[] = (() => {
+  try {
+    const text = readFileSync(
+      join(process.cwd(), "src/data/appmakers_project_reference.csv"),
+      "utf8",
+    );
+    const [, ...dataRows] = parseCsv(text); // skip header
+    return dataRows
+      .filter((r) => r.length >= 5 && r[0].trim())
+      .map((r) => ({
+        projectType: r[0].trim(),
+        scope: r[1].trim(),
+        low: Number(r[2]),
+        high: Number(r[3]),
+        isRealProject: r[4].trim().toLowerCase() === "yes",
+      }));
+  } catch {
+    return [];
+  }
+})();
 
 export type ComparablesResult = {
   matches: Comparable[];
-  // True when nothing matched well — agent should DEFER, not invent a number.
+  // True when nothing matched well — the agent should fall back to the stock
+  // average + judgment (per the prompt), not invent a specific comparable.
   shouldDefer: boolean;
 };
 
+// Words too generic to be useful signal when matching a description.
+const STOP_WORDS = new Set([
+  "app","application","mobile","ios","android","web","the","and","for","with",
+  "that","this","build","building","want","need","features","feature","system",
+  "platform","user","users","custom","software","a","an","to","of","in","on",
+]);
+
+function tokenize(s: string): string[] {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
+}
+
 /**
- * Find comparable past projects by feature description. Returns matches ranked
- * by keyword overlap. If nothing matches confidently, shouldDefer is true and
- * the agent should point the lead to an R&D consultation instead of guessing.
+ * Find comparable reference projects by feature/keyword overlap with the lead's
+ * description. Returns the best 1-2 matches with their RAW numbers and the
+ * is_real_project flag so the agent can build a spoken range per the prompt.
+ * If nothing overlaps meaningfully, shouldDefer is true.
  */
 export function findComparables(description: string): ComparablesResult {
-  const text = description.toLowerCase();
-  const scored = FIXTURE.map((c) => ({
-    c,
-    score: c.keywords.filter((k) => text.includes(k)).length,
-  })).filter((s) => s.score > 0);
+  const wanted = tokenize(description);
+  if (wanted.length === 0 || COMPARABLES.length === 0) {
+    return { matches: [], shouldDefer: true };
+  }
 
-  scored.sort((a, b) => b.score - a.score);
-  const matches = scored.slice(0, 2).map((s) => s.c);
+  const scored = COMPARABLES.map((c) => {
+    const haystack = `${c.projectType} ${c.scope}`.toLowerCase();
+    const score = wanted.reduce(
+      (n, w) => n + (haystack.includes(w) ? 1 : 0),
+      0,
+    );
+    return { c, score };
+  })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  // Require at least a small amount of real overlap to count as a match.
+  const strong = scored.filter((s) => s.score >= 2);
+  const matches = (strong.length ? strong : scored).slice(0, 2).map((s) => s.c);
 
   return { matches, shouldDefer: matches.length === 0 };
 }

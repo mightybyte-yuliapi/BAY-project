@@ -33,6 +33,16 @@ export default tool<LeadReport>({
         },
         required: ["name"],
       },
+      contact: {
+        type: "object",
+        description:
+          "The email/phone captured from the pre-call form (provided in the " +
+          "session context). Relay them here; do not ask the lead for them.",
+        properties: {
+          email: { type: "string" },
+          phone: { type: "string" },
+        },
+      },
       whatTheyWant: {
         type: "string",
         description:

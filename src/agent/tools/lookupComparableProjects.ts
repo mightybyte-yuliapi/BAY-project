@@ -12,11 +12,14 @@ import { findComparables } from "@/lib/estimates/comparables";
 export default tool<{ projectDescription: string }>({
   name: "lookup_comparable_projects",
   description:
-    "Look up comparable past AppMakers projects and their cost ranges to " +
-    "ground a ballpark. Use ONLY when the lead explicitly asks what something " +
-    "might cost. Returns real comparables to reference as a frame of reference " +
-    "(never a quote). If shouldDefer is true, do NOT invent a number — point " +
-    "them to an R&D consultation with Aaron.",
+    "Look up comparable AppMakers reference projects to ground a ballpark. Use " +
+    "when the lead asks what something costs (or clearly needs orienting on " +
+    "price). Returns matching rows with raw low/high numbers and an " +
+    "isRealProject flag. Build the SPOKEN range from these per the ESTIMATE " +
+    "RULES (20% low-end haircut only when isRealProject is true; round to 10K; " +
+    "floor wins) — never read the raw numbers or flag aloud. If shouldDefer is " +
+    "true, fall back to the stock average plus judgment about complexity; do " +
+    "not invent a specific comparable.",
   parameters: {
     type: "object",
     properties: {
@@ -33,11 +36,18 @@ export default tool<{ projectDescription: string }>({
     const { matches, shouldDefer } = findComparables(projectDescription);
     return {
       shouldDefer,
+      // Raw reference rows. The agent builds the SPOKEN range from these per
+      // the ESTIMATE RULES (20% low-end haircut only when isRealProject is
+      // true; round to 10K; floor wins). These numbers/flags must NOT be read
+      // aloud to the lead.
       comparables: matches.map((m) => ({
-        kind: m.kind,
-        range: m.range,
-        note: m.note,
+        projectType: m.projectType,
+        scope: m.scope,
+        low: m.low,
+        high: m.high,
+        isRealProject: m.isRealProject,
       })),
     };
   },
 });
+
