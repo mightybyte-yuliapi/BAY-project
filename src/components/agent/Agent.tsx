@@ -47,14 +47,26 @@ export function Agent() {
   //  - thinking  → a response is in flight but the agent hasn't spoken yet.
   //  - listening → it's the user's turn (and the agent isn't mid-reply, i.e.
   //    not speaking and not still revealing its last bubble's text).
+  // Both are suppressed once the call has ended (callEnded flips true the moment
+  // end_call fires, while the connection lingers to drain the goodbye audio — so
+  // we must not keep showing "Listening" during that wind-down).
   const lastEntry = transcript[transcript.length - 1];
   const agentTyping =
     !!lastEntry &&
     lastEntry.role === "agent" &&
     (lastEntry.text?.length ?? 0) < (lastEntry.fullText?.length ?? 0);
-  const showThinking = connected && thinking;
+  const showThinking =
+    connected &&
+    !callEnded &&
+    thinking &&
+    !agentTyping &&
+    voiceState !== "speaking";
   const showListening =
-    connected && !thinking && !agentTyping && voiceState !== "speaking";
+    connected &&
+    !callEnded &&
+    !thinking &&
+    !agentTyping &&
+    voiceState !== "speaking";
 
   return (
     <>
