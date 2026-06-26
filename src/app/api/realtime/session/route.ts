@@ -23,15 +23,25 @@ export async function POST() {
     session: {
       type: "realtime",
       model: agentConfig.model,
+      // Highest reasoning effort: best instruction-following and the most
+      // natural, on-script conversation. Costs a little latency.
+      reasoning: { effort: "xhigh" },
       instructions: agentConfig.instructions,
       audio: {
         input: {
-          // Auto-detect when the user starts/stops speaking. Required for
-          // input_audio_buffer.speech_started/stopped events (drives the
-          // "listening" animation) and for hands-free conversation.
-          turn_detection: { type: "semantic_vad" },
-          // Transcribe the user's speech so we can show it in the transcript.
-          transcription: { model: "whisper-1" },
+          // Semantic VAD with low eagerness: lets the user finish their
+          // thought (including mid-sentence pauses) before the agent responds,
+          // so it stops cutting in. interrupt_response lets the user barge in
+          // over the agent if they start talking.
+          turn_detection: {
+            type: "semantic_vad",
+            eagerness: "low",
+            create_response: true,
+            interrupt_response: true,
+          },
+          // gpt-4o-transcribe is more accurate than whisper-1 (fewer
+          // wrong-word transcripts).
+          transcription: { model: "gpt-4o-transcribe" },
         },
         output: { voice: agentConfig.voice },
       },
