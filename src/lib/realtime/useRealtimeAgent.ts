@@ -82,6 +82,14 @@ export function useRealtimeAgent() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   // Lets handleFunctionCall trigger disconnect without a circular dependency.
   const endCallRef = useRef<(() => void) | null>(null);
+  // Post-call finalize (email the briefing). Ref so unload/event handlers and
+  // handleFunctionCall can call it without dependency cycles.
+  const finalizeRef = useRef<((reason: "completed" | "abandoned") => void) | null>(null);
+  // Latest transcript, mirrored into a ref so sendBeacon can read it on unload.
+  const transcriptRef = useRef<TranscriptEntry[]>([]);
+  // Guard: a call is finalized exactly once (avoids double emails when the
+  // agent's end_call is followed by teardown/unload).
+  const finalizedRef = useRef(false);
 
   // Send a JSON event to the model over the data channel.
   const send = useCallback((event: Record<string, unknown>) => {
@@ -124,9 +132,10 @@ export function useRealtimeAgent() {
       });
       send({ type: ClientEvent.CreateResponse });
 
-      // end_call means the report was filed — let the agent say its goodbye,
-      // then tear down the session.
+      // end_call means the agent wrapped up — finalize (email the briefing
+      // from the transcript), let the agent say goodbye, then tear down.
       if (call.name === "end_call" && ok) {
+        finalizeRef.current?.("completed");
         setTimeout(() => endCallRef.current?.(), 8000);
       }
     },
@@ -179,6 +188,10 @@ export function useRealtimeAgent() {
     if (status === "connecting" || status === "connected") return;
     setError(null);
     setStatus("connecting");
+    // Fresh call: clear last transcript and re-arm the finalize guard.
+    setTranscript([]);
+    transcriptRef.current = [];
+    finalizedRef.current = false;
     try {
       // 1. Mint an ephemeral token from our backend.
       const { clientSecret } = await session.mutateAsync();
@@ -277,6 +290,8 @@ export function useRealtimeAgent() {
         ) {
           setStatus("error");
           setError("Connection lost.");
+          // Unexpected drop — file an "abandoned" briefing if not already done.
+          finalizeRef.current?.("abandoned");
         }
       });
     } catch (err) {
@@ -296,14 +311,67 @@ export function useRealtimeAgent() {
     if (audioRef.current) audioRef.current.srcObject = null;
   }, []);
 
+  // Post a call's transcript to the backend, which analyzes it and emails the
+  // briefing. Runs at most once per call (finalizedRef). Uses sendBeacon for
+  // the abandoned case so it survives tab close / refresh.
+  const finalize = useCallback((reason: "completed" | "abandoned") => {
+    if (finalizedRef.current) return;
+    finalizedRef.current = true;
+    const payload = JSON.stringify({
+      reason,
+      transcript: transcriptRef.current.map((t) => ({
+        role: t.role,
+        text: t.text,
+      })),
+    });
+    try {
+      if (reason === "abandoned" && typeof navigator.sendBeacon === "function") {
+        navigator.sendBeacon(
+          "/api/realtime/finalize",
+          new Blob([payload], { type: "application/json" }),
+        );
+      } else {
+        void fetch("/api/realtime/finalize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+          keepalive: true,
+        });
+      }
+    } catch {
+      /* best-effort: never block teardown on the email */
+    }
+  }, []);
+  finalizeRef.current = finalize;
+
   const disconnect = useCallback(() => {
+    // Manual hang-up still files a briefing (treated as an early/abandoned end;
+    // the analysis flags it "unfinished" if too little was captured).
+    finalize("abandoned");
     cleanup();
     setStatus("idle");
     setVoiceState("idle");
-  }, [cleanup]);
+  }, [cleanup, finalize]);
 
   // Keep the ref pointing at the latest disconnect for end_call teardown.
   endCallRef.current = disconnect;
+
+  // Mirror transcript into a ref for unload-time access (sendBeacon).
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
+
+  // Safety net: if the page is hidden/closed mid-call, beacon an abandoned
+  // briefing before we lose the transcript.
+  useEffect(() => {
+    const onLeave = () => {
+      if (status === "connected" || status === "connecting") {
+        finalize("abandoned");
+      }
+    };
+    window.addEventListener("pagehide", onLeave);
+    return () => window.removeEventListener("pagehide", onLeave);
+  }, [finalize, status]);
 
   // Enumerate mics on mount, and re-list when devices change.
   useEffect(() => {
