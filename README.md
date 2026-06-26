@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BAY Project
 
-## Getting Started
+A Next.js app skeleton for the Leadership Retreat.
 
-First, run the development server:
+## Tech stack
+
+- **[Next.js 16](https://nextjs.org/) (canary)** — App Router, with **Partial Prerendering (PPR)** enabled via the `cacheComponents` flag in `next.config.ts`
+- **[React 19](https://react.dev/)** + **TypeScript**
+- **[Tailwind CSS v4](https://tailwindcss.com/)**
+- **[shadcn/ui](https://ui.shadcn.com/)** (Radix base, Nova preset)
+- **[TanStack Query](https://tanstack.com/query) (React Query)** — provider wired into the root layout
+
+## Requirements
+
+- **Node.js 20+** (developed on Node 24)
+- **npm** (a `package-lock.json` is committed)
+
+## Install dependencies
+
+```bash
+npm install
+```
+
+## Run the project
+
+### Development
+
+Starts the dev server with hot reload:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Build an optimized production bundle, then serve it:
 
-## Learn More
+```bash
+npm run build
+npm run start
+```
 
-To learn more about Next.js, take a look at the following resources:
+The build log will print `Cache Components enabled`, confirming PPR is active.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Other scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Command         | What it does                      |
+| --------------- | --------------------------------- |
+| `npm run dev`   | Start the dev server (hot reload) |
+| `npm run build` | Create a production build         |
+| `npm run start` | Serve the production build        |
+| `npm run lint`  | Run ESLint                        |
 
-## Deploy on Vercel
+## Adding shadcn/ui components
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx shadcn@latest add button
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project structure
+
+```
+src/
+  app/
+    layout.tsx      # Root layout — wraps the app in the React Query provider
+    providers.tsx   # Client-side QueryClientProvider
+    page.tsx        # Home page
+    globals.css     # Tailwind + theme tokens
+  lib/
+    utils.ts        # shadcn `cn` helper
+next.config.ts      # cacheComponents (PPR) enabled here
+components.json      # shadcn/ui config
+```
+
+> **Note:** This project runs a Next.js **canary** release (PPR requires it). The `AGENTS.md` file documents canary-specific conventions — keep it as-is.
