@@ -14,6 +14,7 @@ import {
   callSubject,
   callText,
   type EndReason,
+  type LeadContact,
   type TranscriptLine,
 } from "@/lib/report/callReport";
 import { sendEmail, REPORT_RECIPIENTS } from "@/lib/email/send";
@@ -21,6 +22,7 @@ import { sendEmail, REPORT_RECIPIENTS } from "@/lib/email/send";
 type FinalizeBody = {
   transcript?: TranscriptLine[];
   reason?: EndReason;
+  contact?: LeadContact;
 };
 
 export async function POST(request: Request) {
@@ -33,14 +35,18 @@ export async function POST(request: Request) {
 
   const transcript = Array.isArray(body.transcript) ? body.transcript : [];
   const reason: EndReason = body.reason === "abandoned" ? "abandoned" : "completed";
+  const contact: LeadContact = {
+    email: body.contact?.email?.trim() || undefined,
+    phone: body.contact?.phone?.trim() || undefined,
+  };
 
   const analysis = await analyzeTranscript(transcript, reason);
 
   const result = await sendEmail({
     to: REPORT_RECIPIENTS,
     subject: callSubject(analysis),
-    html: callHtml(analysis, transcript),
-    text: callText(analysis, transcript),
+    html: callHtml(analysis, transcript, contact),
+    text: callText(analysis, transcript, contact),
   });
 
   return Response.json(

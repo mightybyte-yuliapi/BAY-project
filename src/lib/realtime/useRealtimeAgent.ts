@@ -84,6 +84,9 @@ export function useRealtimeAgent() {
   // Guard: a call is finalized exactly once (avoids double emails when the
   // agent's end_call is followed by teardown/unload).
   const finalizedRef = useRef(false);
+  // The lead's contact info (captured by ContactForm before the call), kept so
+  // the finalize briefing can include it.
+  const contactRef = useRef<{ email?: string; phone?: string }>({});
 
   // Send a JSON event to the model over the data channel.
   const send = useCallback((event: Record<string, unknown>) => {
@@ -181,6 +184,8 @@ export function useRealtimeAgent() {
     setTranscript([]);
     transcriptRef.current = [];
     finalizedRef.current = false;
+    // Remember the lead's contact so the briefing email can include it.
+    contactRef.current = contact ?? {};
     try {
       // 1. Mint an ephemeral token from our backend (with the lead's contact).
       const { clientSecret } = await session.mutateAsync(contact);
@@ -308,6 +313,7 @@ export function useRealtimeAgent() {
     finalizedRef.current = true;
     const payload = JSON.stringify({
       reason,
+      contact: contactRef.current,
       transcript: transcriptRef.current.map((t) => ({
         role: t.role,
         text: t.text,

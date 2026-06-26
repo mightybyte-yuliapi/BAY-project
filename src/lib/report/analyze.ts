@@ -7,10 +7,8 @@
 // Swap providers by changing only the fetch block; keep analyzeTranscript's
 // signature and the CallAnalysis return.
 
-import {
-  ANALYSIS_SYSTEM_PROMPT,
-  ANALYSIS_USER_TEMPLATE,
-} from "./prompts";
+import { agentConfig } from "@/agent/config";
+import { buildAnalysisSystemPrompt, ANALYSIS_USER_TEMPLATE } from "./prompts";
 import type {
   CallAnalysis,
   CallFlag,
@@ -22,7 +20,14 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 // Text model for the post-call write-up. Override with OPENAI_ANALYSIS_MODEL.
 const ANALYSIS_MODEL = process.env.OPENAI_ANALYSIS_MODEL ?? "gpt-4o-mini";
 
-const VALID_FLAGS: CallFlag[] = ["strong", "weak", "suspicious", "unfinished"];
+const VALID_FLAGS: CallFlag[] = [
+  "strong",
+  "mixed",
+  "weak",
+  "suspicious",
+  "unfinished",
+  "too_thin",
+];
 
 function renderTranscript(t: TranscriptLine[]): string {
   if (!t.length) return "(empty — no speech was captured)";
@@ -39,17 +44,17 @@ export async function analyzeTranscript(
   transcript: TranscriptLine[],
   reason: EndReason,
 ): Promise<CallAnalysis> {
-  // Short-circuit empty/abandoned-at-start calls — no point spending a token.
+  // Short-circuit empty/near-empty calls — no point spending a token.
   if (tooThinToJudge(transcript)) {
     return {
-      flag: "unfinished",
-      title: "Unfinished call",
+      flag: "too_thin",
+      title: "Too thin to judge",
       summary:
         reason === "abandoned"
           ? "The prospect left before saying anything substantive (page closed, refreshed, or connection dropped)."
           : "The call ended with nothing substantive captured.",
       recommendations:
-        "No action needed unless this repeats. If the same caller abandons often, watch for a connection issue in the demo.",
+        "No action needed unless this repeats. If the same caller keeps dropping, watch for a connection issue in the demo.",
     };
   }
 
@@ -81,7 +86,12 @@ export async function analyzeTranscript(
         temperature: 0.3,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
+          // The analyst's rules ARE the agent's own system prompt (config.ts),
+          // so qualification criteria/tone/people stay in one place.
+          {
+            role: "system",
+            content: buildAnalysisSystemPrompt(agentConfig.instructions),
+          },
           { role: "user", content: userMsg },
         ],
       }),
