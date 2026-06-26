@@ -108,6 +108,9 @@ export function useRealtimeAgent() {
   // True once end_call fired and we're waiting for the agent's goodbye audio to
   // finish before tearing down — so the outro never gets clipped.
   const endingRef = useRef(false);
+  // Why the call ended, set before teardown so finalize sends the right reason.
+  // "completed" = agent called end_call; "abandoned" = manual hang-up / drop.
+  const endReasonRef = useRef<"completed" | "abandoned">("abandoned");
 
   // Send a JSON event to the model over the data channel.
   const send = useCallback((event: Record<string, unknown>) => {
@@ -159,20 +162,27 @@ export function useRealtimeAgent() {
           output: JSON.stringify(output),
         },
       });
-      if (!activeResponseRef.current) {
+      // Ask the model to continue speaking after a tool result — EXCEPT for
+      // end_call. The agent already said its goodbye in the same turn it called
+      // end_call; requesting another response just produces a redundant SECOND
+      // sign-off ("Aaron will follow up..." twice). For end_call we want the
+      // conversation to stop, so we never continue it.
+      if (call.name !== "end_call" && !activeResponseRef.current) {
         send({ type: ClientEvent.CreateResponse });
       }
 
-      // end_call means the agent wrapped up — finalize (email the briefing
-      // from the transcript), let the agent FINISH its goodbye out loud, then
-      // tear down. We mark "ending" and disconnect when the goodbye audio
-      // completes (OutputAudioDone); the timeout is a safety fallback in case
-      // that event never arrives, set long enough not to clip the goodbye.
+      // end_call means the agent wrapped up. Let the goodbye audio FINISH, then
+      // tear down. CRITICAL: do NOT finalize (email the briefing) here — user
+      // transcriptions arrive asynchronously and the last qualifying turns
+      // ("$150K, I'm the COO") may not have committed yet. Snapshotting now
+      // yields a thin transcript and a wrong "too thin to judge" flag. Finalize
+      // happens at teardown (disconnect), by which point late transcripts have
+      // landed.
       if (call.name === "end_call" && ok) {
         console.log("[agent] end_call fired → setCallEnded(true), waiting for goodbye audio");
-        finalizeRef.current?.("completed");
         endingRef.current = true;
         setCallEnded(true);
+        endReasonRef.current = "completed";
         setTimeout(() => {
           console.log("[agent] 15s fallback teardown");
           endCallRef.current?.();
@@ -467,12 +477,16 @@ export function useRealtimeAgent() {
     const payload = JSON.stringify({
       reason,
       contact: contactRef.current,
-      // Use fullText for agent turns so the briefing gets the COMPLETE
-      // transcript even if captions were still revealing when the call ended.
-      transcript: transcriptRef.current.map((t) => ({
-        role: t.role,
-        text: t.fullText ?? t.text,
-      })),
+      // Prefer the COMPLETE text (fullText) but never send an empty string:
+      // fall back to the visible text. (Agent turns carry the full transcript in
+      // fullText; user turns set both. The empty-string trap — fullText "" for
+      // user bubbles — is why lead turns were arriving blank.)
+      transcript: transcriptRef.current
+        .map((t) => ({
+          role: t.role,
+          text: (t.fullText && t.fullText.trim()) || t.text || "",
+        }))
+        .filter((t) => t.text.trim().length > 0),
     });
     try {
       if (reason === "abandoned" && typeof navigator.sendBeacon === "function") {
@@ -495,10 +509,12 @@ export function useRealtimeAgent() {
   finalizeRef.current = finalize;
 
   const disconnect = useCallback(() => {
-    // Manual hang-up still files a briefing (treated as an early/abandoned end;
-    // the analysis flags it "unfinished" if too little was captured). If the
-    // agent already finalized via end_call, finalize() is a no-op (guarded).
-    finalize("abandoned");
+    // File the briefing with the reason set by the end path ("completed" when
+    // the agent called end_call, else "abandoned" for a manual hang-up/drop).
+    // finalize is guarded to run once. We finalize HERE (at teardown) rather
+    // than when end_call first fired, so asynchronously-arriving user
+    // transcriptions have landed and the transcript is complete.
+    finalize(endReasonRef.current);
     cleanup();
     setStatus("idle");
     setVoiceState("idle");
@@ -536,33 +552,44 @@ export function useRealtimeAgent() {
   }, [refreshDevices]);
 
   // Caption reveal loop: advance each agent bubble's visible text toward its
-  // fullText at speech pace, so the transcript tracks the spoken audio instead
-  // of racing ahead. While the agent is speaking we reveal gradually; the
-  // moment it stops, we flush the rest so nothing is ever lost or left hanging.
+  // fullText at a steady speech pace, so the transcript tracks the spoken audio
+  // instead of racing ahead. We ALWAYS reveal gradually (never instant-dump),
+  // regardless of voiceState — otherwise a second message that arrives during
+  // the brief idle gap after a tool call would flush its whole text in silence
+  // before its audio starts. Only the final, no-longer-active bubble is flushed
+  // to completion (below), so nothing is ever left hanging.
   useEffect(() => {
-    const REVEAL_CPS = 28; // chars/sec while speaking (~natural narration)
+    const REVEAL_CPS = 28; // chars/sec (~natural narration speed)
     const interval = setInterval(() => {
       // commitTranscript keeps transcriptRef synced so the finalize beacon sees
       // the revealed text, not a stale snapshot.
       commitTranscript((prev) => {
+        // The last agent bubble is the "active" one; earlier completed bubbles
+        // should already be fully shown.
+        let lastAgentIdx = -1;
+        for (let i = prev.length - 1; i >= 0; i--) {
+          if (prev[i].role === "agent") {
+            lastAgentIdx = i;
+            break;
+          }
+        }
         let changed = false;
-        const next = prev.map((e) => {
+        const step = Math.max(1, Math.round((REVEAL_CPS * 60) / 1000));
+        const next = prev.map((e, i) => {
           if (e.role !== "agent" || e.fullText == null) return e;
           if (e.text.length >= e.fullText.length) return e;
           changed = true;
-          if (voiceState === "speaking") {
-            // Reveal a chunk sized to the tick rate (interval is 60ms).
-            const step = Math.max(1, Math.round((REVEAL_CPS * 60) / 1000));
-            return { ...e, text: e.fullText.slice(0, e.text.length + step) };
-          }
-          // Not speaking → flush the remainder immediately.
-          return { ...e, text: e.fullText };
+          // Flush any older agent bubble (not the active one) instantly so a
+          // superseded turn never sits half-revealed.
+          if (i !== lastAgentIdx) return { ...e, text: e.fullText };
+          // Active bubble: reveal a chunk sized to the tick rate (60ms).
+          return { ...e, text: e.fullText.slice(0, e.text.length + step) };
         });
         return changed ? next : prev;
       });
     }, 60);
     return () => clearInterval(interval);
-  }, [voiceState, commitTranscript]);
+  }, [commitTranscript]);
 
   // Tear down on unmount.
   useEffect(() => cleanup, [cleanup]);
@@ -625,11 +652,13 @@ function setBubbleText(
     const idx = prev.findIndex((e) => e.itemId === itemId);
     if (idx !== -1) {
       const next = prev.slice();
-      next[idx] = { ...next[idx], text };
+      // Set BOTH text and fullText so the finalize payload (which prefers
+      // fullText) never sends an empty string for user turns.
+      next[idx] = { ...next[idx], text, fullText: text };
       return next;
     }
   }
-  return [...prev, { id: cryptoId(), role, text, itemId }];
+  return [...prev, { id: cryptoId(), role, text, fullText: text, itemId }];
 }
 
 // Remove a bubble by itemId (e.g. a placeholder whose transcript was noise).
