@@ -1,0 +1,53 @@
+00:00:00 Aaron
+Hi, my name is Aaron. I am the CO of App Makers LA. You reached out to us yesterday. Hi, how are you? I am good. How's your day going? Fine. So I am looking at your description of the app you are looking to build. I am curious, what is the budget that you have in mind for this? You wrote twenty to twenty five thousand. Is that what you are working with? Is that self funded? Are you looking for investors?
+
+00:00:25 Speaker 2
+That would be for us by us. We are using an app today, and it's on the App Store and it's through Mighty Network. I saw that. Do you know what Mighty Network is? I do. We're basically using their platform and for the past two years, everyone's been complaining about the navigation. So we really just need a custom app. It's not working. It's nice because we only pay them a couple thousand every couple months. So that's kind of our budget. We have a laundry list of things that we want in there. Potentially, we could build it out where you tell us, okay, here's what we can build for that. Twenty five thousand. And then we start layering in some more as we go on because that would help us budget.
+
+00:01:22 Speaker 2
+Building the entire thing.
+
+00:01:24 Aaron
+Absolutely. Generally speaking, software is always iterative, and you usually want to start small anyway. Then just build once your users have confirmed that what you've got going on works for them. So a couple of points of feedback for you, just some info. 25 K would be extremely bare bones typically like a native mobile app. Talking about cross platform development for iOS and Android is going to be usually a floor of like twenty five to thirty k, and that would be very bare bones like static content, maybe an account creation flow. Most of the minimum viable products we build are typically somewhere between thirty to seventy k. So I just want to level with you upfront about the cost reality there.
+
+00:02:16 Speaker 2
+And we've been looking for somebody to do it. The right team, the right price, that kind of stuff, for probably the last year. And we hadn't landed on the correct setup. So because we found a very junior person, obviously that could do it for a lot cheaper. I'm curious what's going on with my team. You can quote us and see what it would be.
+
+00:02:47 Aaron
+Sounds good. I'm curious, what have you bumped on? What has been the biggest disqualifier for you when talking to other folks? Is it lack of experience, price, or something else? What in general has been causing you to throw out the folks you've been interviewing so far?
+
+00:03:03 Speaker 2
+I mean I would say price but also the ongoing maintenance. Through our current platform they provide customer service like lost password, errors, response time to fix things and that kind of thing. Whatever team we hire really needs to be good on like, or is that on us? Right. Like I don't know. It's on the IT part of it. Of course.
+
+00:03:33 Aaron
+We want to be very transparent with you. Our business model is really set up on long term relationships. Obviously, we can build the first version for you, and we'll do a bang up job at that. Our hope is that you want us to stick around, and we can rely on you guys for an ongoing relationship where we can make minor tweaks, updates, new features, et cetera over the course of months to years. We are set up for that. That's what we hope for.
+
+00:03:59 Speaker 2
+no that sounds good. And then also just like are you guys in the U S or?
+
+00:04:04 Aaron
+Yes, we're a U.S. company and our leadership is American. We're originally from Los Angeles, California. We have folks now that are all over the place because we hire remotely at this point. We don't have physical office space since COVID nineteen, but the company is headquartered in America. So, with that being said, I think what I would recommend for you as a next step is we could hop on a Zoom call together. I could run through basically a free consultation for you. We could talk about what the minimum viable product here would look like, how we would recommend you shape it as a first version. And then we can talk about our processes and what next steps would look like if we were to work together. Do you have time? Maybe tomorrow or in general this week where we could book a Zoom call together?
+
+00:04:56 Speaker 2
+I only work on Tuesdays and Thursdays. Gotcha. Either Thursday or next week.
+
+00:05:03 Aaron
+You're saying you only work on Tuesdays and Thursdays.
+
+00:05:08 Speaker 2
+That's the only time I can do a call.
+
+00:05:10 Aaron
+We could do Thursday of this week. What time would work for you?
+
+00:05:16 Speaker 2
+Ten thirty to three thirty. I'm in Ohio so that's Eastern time.
+
+00:05:21 Aaron
+Gotcha. I'm actually in New York right now, so I'm on Eastern time as well. You said around ten thirty Eastern Time this Thursday? That's fine, perfect. I'll send you an invite shortly. While we're chatting, do you have any other quick questions for me before then?
+
+00:05:43 Speaker 2
+Um no, I mean that sounds good.
+
+00:05:45 Aaron
+Sounds good Julie, it was nice to speak with you. I'll send you the calendar invite in a moment and we'll go from there. Thanks. Take care, bye.

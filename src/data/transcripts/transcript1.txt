@@ -1,0 +1,128 @@
+00:00:01 Aaron
+Hello? Hey, is this Eric. 
+
+00:00:03 Speaker 2
+Yeah.
+
+00:00:04 Aaron
+Hey, Eric. I'm Aaron. I'm with AppMakers. How are you doing. 
+
+00:00:07 Speaker 2
+I'm doing all right. How are you. 
+
+00:00:09 Aaron
+I'm doing good. I just got your inquiry a couple minutes ago. Do you have a quick second to chat. 
+
+00:00:13 Speaker 2
+Yeah.
+
+00:00:14 Aaron
+Cool. So this is, I'm assuming you're basically trying to solve a problem for your company and this is sort of a custom bespoke build to fit within like a niche use case, right. 
+
+00:00:30 Speaker 2
+Yeah, pretty much. I mean, we have a current system in place, but this thing was written probably like 30 years ago. It's Excel-based and it's pretty much becoming obsolete at this point. So we're looking to get sort of a replacement system written for that. I mean, there's a lot of pieces to it though. We have been talking to this company that's based out of India. That whole process was set up before I got into the seat.
+
+00:01:01 Speaker 2
+And unfortunately, just their timelines and their pricing just aren't working, and it's mostly the timelines. Got you. We're a year and a half, two years out to be able to get something written, and we just kind of don't have that time.
+
+00:01:13 Aaron
+That's a huge amount of time, interesting. That's massive. I mean, I don't think we've ever taken over a year, I don't think we've ever taken more than eight months to ship even the biggest thing we've built, so okay. What is your role, just out of curiosity, at the company. 
+
+00:01:31 Speaker 2
+I'm the operations director.
+
+00:01:33 Aaron
+Understood. And then. 
+
+00:01:36 Speaker 2
+Commercial fire sprinkler company.
+
+00:01:37 Aaron
+Right. I was looking at your website just now. How many employees would be using this software on a daily basis. 
+
+00:01:47 Speaker 2
+Office, 35, 50.
+
+00:01:49 Aaron
+Okay. And then is there any, is this customer facing, or is this entirely internal? Yeah.
+
+00:01:55 Speaker 2
+entirely internal okay gotcha um the only part of this that would have any real customer interaction is we do have a service department and so we have inspectors on the field to go in do their inspections and create these reports and those reports are presented to um our customers yeah into the buildings um so that would be that really would be the only customer interaction.
+
+00:02:20 Aaron
+involving anything with the system okay okay good to know um what is your ideal timeline for this oh yesterday yeah i figured you would say that now um okay we're aware that it's obviously a.
+
+00:02:36 Speaker 2
+process and all that you know it's just it's kind of hard to swallow i guess the this process with these people from india has already been in the works for about three years and, we still haven't even gotten an official proposal from them and it's getting to the point feels like every time we turn a corner they're asking us for more money just to even develop a proposal yeah, and giving us timelines where they're another year and a half two years out on that um i did talk to another person um which seemed like it was going to work out but the only issue i'm having with him is he wants to make everything cloud-based and the president of our company wants to keep.
+
+00:03:11 Speaker 2
+everything in turn we have a server room here with our own servers he wants to keep everything based on that as opposed to the cloud what is the what is the reason this isn't very strong in our area, And he would like it that if the internet did go down for whatever reason, we can just pull straight from our servers. And that's going to be a pretty hard stipulation he has.
+
+00:03:34 Aaron
+Understood. What kind of IT do you have internally already. 
+
+00:03:39 Speaker 2
+We do employ one IT person. He kind of does some basic stuff. But we also have a third party that we use to maintain and update all our servers and everything. They're called Nibbles.
+
+00:03:54 Aaron
+Okay. So we would be working with them potentially for implementing this on your servers, making sure that it's running locally. This budget that you wrote here, $100,000 to $250,000, is that accurate. 
+
+00:04:10 Speaker 2
+Yeah. I mean, obviously, it would be nice to be closer to the $100,000 range. But we're looking. uh more than that with the people from india um again i'm you know we're aware that this is sort of a larger undertaking um so we're not naive to the cost potential okay sounds good um so this.
+
+00:04:30 Aaron
+was what i would recommend for next steps um just to keep the conversation going um we have a research and design phase that we run with all new projects it's basically how we scope out the work and make sure that all the designs are done up front and that we're researching a technical stack that we have a high degree of confidence is going to work and then based on all of that we can give a very very detailed like down to the last man hour estimate for development so that corresponds to of course price and then also timeline broadly speaking i can tell you and you know don't hold me.
+
+00:05:06 Aaron
+to this because we haven't done that r d process yet but broadly speaking most builds that we ship, land somewhere in the middle of the market and we're not going to be able to do that for a long period of time we're going to be able to do that for a long period of time we're going to be able to do, in like, I would say, a two to three month timeline of development, something that is 100K plus. Maybe you're looking at like three to four months, but we can move pretty quickly. It's really up to you in terms of of your tolerance for budget and efficiency. Essentially, it's a dial, right? We can always turn that knob up and have more engineers, more bodies on a project.
+
+00:05:37 Aaron
+It does mean that they'll work, you know, with diminishing returns on efficiency, but we could always move very fast. I would say like an optimal build is like, you know, two devs, one on the front end, one on the back end, or one of them is full stack. And then we're working at like a pretty comfortable clip of, I would say maybe, you know, about four months time for like 100K build. But of course, we can always move much faster than that. We actually just launched an app. for a client that we did in about 90 days.
+
+00:06:10 Aaron
+And that was a very big lift with four developers. So we are flexible. So yeah, just to continue the conversation, what I would love to do is have a Zoom call with you if you have time this week. We can chat myself. I'm the COO, by the way. We can chat myself and then my CEO, Dan, can get on the call as well. And we could basically just walk you through what that R&D process looks like. That would be our first step together. It's basically a get your feet wet opportunity. So you see how we work.
+
+00:06:40 Aaron
+You can build some confidence and trust in the way that we do business, the way that we operate. And then once we've gone through that, we would move into development. But we can also use that Zoom call to walk you through a screen share, show you some past apps and platforms that we've built similar to the use case, or obviously not the exact use case of your company, but basically custom software solutions that we've built for other businesses that have helped them basically upgrade their systems and how they're doing. And how they work internally.
+
+00:07:07 Speaker 2
+Okay, quick question for you now, you're engineers, are they all local based, or do you personally employ them, are you third party. 
+
+00:07:38 Aaron
+So, you know, if we find like, totally crack software engineer, who's, you know, awesome, and, you know, loves to code, and he's based in Brazil, or wherever, you know, we'll hire him where the talent is, but everyone works on Pacific Time, US, everyone speaks fluent English, everyone understands American business culture, a very rigorous hiring process.
+
+00:08:00 Speaker 2
+Sounds great. And then you guys obviously wouldn't have any issue uploading to our server or anything like that. You're not strictly to a cloud-based programming, right. 
+
+00:08:10 Aaron
+Most of, I would not say strictly, no. Most of our builds by default are cloud-based, but we can dive into the specifics of your use case on our Zoom call with Dan and kind of figure out exactly what your needs are and how we would serve them. But I'm not worried about it.
+
+00:08:25 Speaker 2
+Perfect. Sounds great. Yeah. Just let me know any time you guys have availability.
+
+00:08:33 Aaron
+Awesome. I can do a couple things. Either you can tell me right now if there's like a specific time that's really good for you this week, or if you want, I can email you a link to my calendar with Dan. It basically just represents both of our availabilities, and you can book any time that you see that works for you.
+
+00:08:51 Speaker 2
+Yeah, I mean, I'm sure that it's going to be out for me.
+
+00:08:55 Aaron
+Okay.
+
+00:08:57 Speaker 2
+Tuesday, Wednesday, or Friday. Anytime in the morning works great for me.
+
+00:09:00 Aaron
+Cool. And what time zone are you on. 
+
+00:09:03 Speaker 2
+Pacific. We're based in L.A.
+
+00:09:05 Aaron
+Okay, awesome. So, yeah, let me talk to Dan and set something up for you probably tomorrow. Let's try to get this on the book sooner than later. Sounds nice. Awesome. All right, Eric, I'll be in touch. This is my cell phone, by the way, so you feel free to save it in your contacts if you have any questions in the meantime. Cool. Well, it was great chatting with you. We'll be in touch soon.
+
+00:09:31 Speaker 2
+Sounds great. Thank you.
+
+00:09:32 Aaron
+All right, take care. Bye.
