@@ -6,19 +6,22 @@
 //   - listening  → cool, steady pulse + expanding rings (receiving your voice)
 //   - speaking   → energetic pulse + faster concentric ripples (outputting voice)
 //
-// Pure presentational — driven entirely by the `state` prop.
+// Pure presentational — driven entirely by the `state` prop. The `compact` prop
+// shrinks the orb for the pinned top bar; the shared `layoutId` lets framer
+// smoothly animate it from the centered hero into the corner when a call starts.
 
 "use client";
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import type { VoiceState } from "@/lib/realtime/events";
 
 const PINK = "#ea175c";
 const PINK_SOFT = "#ff4d85";
 
 const LABEL: Record<VoiceState, string> = {
-  idle: "Tap to talk",
+  idle: "",
   listening: "Listening",
   speaking: "Speaking",
 };
@@ -52,7 +55,13 @@ function Ripples({ active, speed }: { active: boolean; speed: number }) {
   );
 }
 
-export function VoiceOrb({ state }: { state: VoiceState }) {
+export function VoiceOrb({
+  state,
+  compact = false,
+}: {
+  state: VoiceState;
+  compact?: boolean;
+}) {
   const listening = state === "listening";
   const speaking = state === "speaking";
   const active = listening || speaking;
@@ -69,9 +78,16 @@ export function VoiceOrb({ state }: { state: VoiceState }) {
     <div className="pointer-events-none flex flex-col items-center gap-5">
       {/* Fixed-size stage. No overflow clipping (that produced a hard square
           edge); instead the halo + ripples are sized/inset so they stay within
-          this area. All layers are pointer-events-none so nothing intercepts
-          the End button below. */}
-      <div className="relative flex h-48 w-48 items-center justify-center sm:h-56 sm:w-56">
+          this area. `layoutId` makes framer animate this box (size + position)
+          smoothly when it moves between the hero and the pinned bar. */}
+      <motion.div
+        layoutId="voice-orb"
+        transition={{ type: "spring", stiffness: 120, damping: 24, mass: 1.1 }}
+        className={cn(
+          "relative flex items-center justify-center",
+          compact ? "h-12 w-12" : "h-48 w-48 sm:h-56 sm:w-56",
+        )}
+      >
         {/* Outer glow halo */}
         <motion.span
           className="pointer-events-none absolute rounded-full blur-2xl"
@@ -87,12 +103,16 @@ export function VoiceOrb({ state }: { state: VoiceState }) {
           }}
         />
 
-        {/* Expanding rings while active */}
-        <Ripples active={active} speed={speaking ? 1.1 : 1.8} />
+        {/* Expanding rings while active — skipped in compact mode to keep the
+            pinned bar tidy. */}
+        <Ripples active={active && !compact} speed={speaking ? 1.1 : 1.8} />
 
         {/* Core orb */}
         <motion.div
-          className="relative flex h-28 w-28 items-center justify-center rounded-full shadow-2xl sm:h-32 sm:w-32"
+          className={cn(
+            "relative flex items-center justify-center rounded-full shadow-2xl",
+            compact ? "h-10 w-10" : "h-28 w-28 sm:h-32 sm:w-32",
+          )}
           style={{
             background: `radial-gradient(circle at 38% 30%, ${PINK_SOFT}, ${PINK} 52%, #8f0d39 100%)`,
             boxShadow: `0 0 60px -10px ${PINK}, inset 0 -8px 22px rgba(0,0,0,0.35)`,
@@ -115,22 +135,27 @@ export function VoiceOrb({ state }: { state: VoiceState }) {
             width={96}
             height={96}
             priority
-            className="relative h-20 w-20 sm:h-24 sm:w-24"
+            className={cn(
+              "relative",
+              compact ? "h-7 w-7" : "h-20 w-20 sm:h-24 sm:w-24",
+            )}
             style={{
               filter: "brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.35))",
             }}
           />
         </motion.div>
-      </div>
+      </motion.div>
 
-      <motion.p
-        key={state}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-sm font-medium tracking-wide text-zinc-300"
-      >
-        {LABEL[state]}
-      </motion.p>
+      {!compact && LABEL[state] && (
+        <motion.p
+          key={state}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-sm font-medium tracking-wide text-zinc-300"
+        >
+          {LABEL[state]}
+        </motion.p>
+      )}
     </div>
   );
 }

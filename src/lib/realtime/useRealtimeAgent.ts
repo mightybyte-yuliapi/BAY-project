@@ -45,12 +45,20 @@ export type TranscriptEntry = {
 
 const REALTIME_URL = "https://api.openai.com/v1/realtime/calls";
 
+// Proactive opener — posted as the agent's first message the moment we connect,
+// so the conversation kicks off instead of waiting for the client to speak.
+const GREETING =
+  "Hi, I'm AppMakers' virtual assistant. What are you looking to build?";
+
 export function useRealtimeAgent() {
   const session = useRealtimeSession();
   const toolCall = useToolCall();
 
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  // True while a response is in flight but the agent hasn't started speaking
+  // yet — drives the "Bay team thinking" indicator.
+  const [thinking, setThinking] = useState(false);
   // True after the agent has wrapped up the call (end_call) — drives the
   // "conversation ended" confirmation UI.
   const [callEnded, setCallEnded] = useState(false);
@@ -248,6 +256,8 @@ export function useRealtimeAgent() {
           break;
         case ServerEvent.OutputAudioDelta:
           setVoiceState("speaking");
+          // The agent has started speaking — it's no longer just "thinking".
+          setThinking(false);
           break;
         case ServerEvent.OutputAudioDone:
           setVoiceState("idle");
@@ -262,6 +272,8 @@ export function useRealtimeAgent() {
           break;
         case ServerEvent.ResponseCreated:
           activeResponseRef.current = true;
+          // Response started but no audio yet → the agent is "thinking".
+          setThinking(true);
           break;
         case ServerEvent.ConversationItemAdded: {
           // An item entered the conversation IN ORDER. Create its (initially
@@ -304,6 +316,7 @@ export function useRealtimeAgent() {
         }
         case ServerEvent.ResponseDone: {
           activeResponseRef.current = false;
+          setThinking(false);
           for (const call of extractFunctionCalls(event)) {
             void handleFunctionCall(call);
           }
@@ -323,6 +336,7 @@ export function useRealtimeAgent() {
     transcriptRef.current = [];
     finalizedRef.current = false;
     setCallEnded(false);
+    setThinking(false);
     // Remember the lead's contact so the briefing email can include it.
     contactRef.current = contact ?? {};
     try {
@@ -523,6 +537,7 @@ export function useRealtimeAgent() {
     cleanup();
     setStatus("idle");
     setVoiceState("idle");
+    setThinking(false);
     // Always show the ended notice once a real conversation has happened, even
     // if the model spoke a goodbye without calling end_call — the user must get
     // closure feedback regardless of how the call ended.
@@ -598,9 +613,21 @@ export function useRealtimeAgent() {
   // Tear down on unmount.
   useEffect(() => cleanup, [cleanup]);
 
+  // Post the greeting the instant we're connected (once, only if nothing has
+  // arrived yet), so the agent opens proactively rather than waiting silently.
+  useEffect(() => {
+    if (status !== "connected") return;
+    commitTranscript((prev) =>
+      prev.length > 0
+        ? prev
+        : [{ id: cryptoId(), role: "agent", text: GREETING, fullText: GREETING }],
+    );
+  }, [status, commitTranscript]);
+
   return {
     status,
     voiceState,
+    thinking,
     transcript,
     error,
     connect,

@@ -136,20 +136,7 @@
 
 /* Black → grey gradient page background, with two soft pink glows. */
 .bg-mb-bg {
-  background-color: #000;
-  background-image:
-    radial-gradient(
-      60rem 60rem at 75% -10%,
-      rgba(234, 23, 92, 0.18),
-      transparent 60%
-    ),
-    radial-gradient(
-      50rem 50rem at 10% 110%,
-      rgba(234, 23, 92, 0.12),
-      transparent 55%
-    ),
-    linear-gradient(160deg, #0b0b0d 0%, #161618 45%, #1f1f23 100%);
-  background-attachment: fixed;
+  background-color: #15101a;
 }
 
 /* Brand color utilities for use in components. */
