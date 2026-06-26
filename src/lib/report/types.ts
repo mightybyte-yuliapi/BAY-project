@@ -14,6 +14,12 @@ export type LeadReport = {
     company?: string;
     source?: string; // referral, Clutch, inbound form, etc.
   };
+  // Contact: email + phone captured from the pre-call form (attached to the
+  // session). The agent doesn't ask for these; it just relays what it was given.
+  contact?: {
+    email?: string;
+    phone?: string;
+  };
   // What they want: project in plain terms, underlying problem, platform,
   // notable scope/integration/AI signals.
   whatTheyWant: string;

@@ -28,8 +28,14 @@ export function reportText(r: LeadReport): string {
     .filter(Boolean)
     .join(", ");
 
+  const contactLine =
+    [r.contact?.email, r.contact?.phone].filter(Boolean).join(" · ") ||
+    "Not provided";
+
   return [
     `LEAD: ${leadLine || "Not captured"}`,
+    ``,
+    `CONTACT: ${contactLine}`,
     ``,
     `WHAT THEY WANT:`,
     r.whatTheyWant,
@@ -72,8 +78,13 @@ export function reportHtml(r: LeadReport): string {
     `<h3 style="margin:18px 0 4px;font:600 13px/1.4 -apple-system,Segoe UI,sans-serif;color:#111;text-transform:uppercase;letter-spacing:.04em">${title}</h3>
      <div style="font:14px/1.5 -apple-system,Segoe UI,sans-serif;color:#222">${body}</div>`;
 
+  const contactLine =
+    [r.contact?.email, r.contact?.phone].filter(Boolean).join(" · ") ||
+    "Not provided";
+
   return `<div style="max-width:620px">
     ${section("Lead", esc(leadLine || "Not captured"))}
+    ${section("Contact", esc(contactLine))}
     ${section("What they want", esc(r.whatTheyWant))}
     ${section("Stage & assets", esc(r.stageAndAssets))}
     ${section("Commercial", esc(r.commercial))}
