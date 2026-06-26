@@ -90,6 +90,10 @@ export function useRealtimeAgent() {
   // The lead's contact info (captured by ContactForm before the call), kept so
   // the finalize briefing can include it.
   const contactRef = useRef<{ email?: string; phone?: string }>({});
+  // True while the model has a response in flight. We must NOT send
+  // response.create while one is active, or the server errors with
+  // conversation_already_has_active_response (and turns get garbled).
+  const activeResponseRef = useRef(false);
 
   // Send a JSON event to the model over the data channel.
   const send = useCallback((event: Record<string, unknown>) => {
@@ -113,7 +117,11 @@ export function useRealtimeAgent() {
         output = { error: err instanceof Error ? err.message : "Tool failed." };
       }
       console.log(`[tool] ← ${call.name} ${ok ? "ok" : "error"}`, output);
-      // Return the result to the model, then ask it to continue speaking.
+      // Return the result to the model, then ask it to continue speaking — but
+      // only if a response isn't already in flight. With create_response:true
+      // the server often auto-responds after function output; firing our own on
+      // top errors with conversation_already_has_active_response and garbles the
+      // turn. Guard against it.
       send({
         type: ClientEvent.CreateConversationItem,
         item: {
@@ -122,7 +130,9 @@ export function useRealtimeAgent() {
           output: JSON.stringify(output),
         },
       });
-      send({ type: ClientEvent.CreateResponse });
+      if (!activeResponseRef.current) {
+        send({ type: ClientEvent.CreateResponse });
+      }
 
       // end_call means the agent wrapped up — finalize (email the briefing
       // from the transcript), let the agent say goodbye, then tear down.
@@ -152,6 +162,9 @@ export function useRealtimeAgent() {
           break;
         case ServerEvent.OutputAudioDone:
           setVoiceState("idle");
+          break;
+        case ServerEvent.ResponseCreated:
+          activeResponseRef.current = true;
           break;
         case ServerEvent.ConversationItemAdded: {
           // An item entered the conversation IN ORDER. Create its (initially
@@ -190,6 +203,7 @@ export function useRealtimeAgent() {
           break;
         }
         case ServerEvent.ResponseDone: {
+          activeResponseRef.current = false;
           for (const call of extractFunctionCalls(event)) {
             void handleFunctionCall(call);
           }
@@ -260,9 +274,9 @@ export function useRealtimeAgent() {
                   // transcription avoids foreign-language hallucinations.
                   turn_detection: {
                     type: "server_vad",
-                    threshold: 0.85,
+                    threshold: 0.95,
                     prefix_padding_ms: 300,
-                    silence_duration_ms: 900,
+                    silence_duration_ms: 1000,
                     create_response: true,
                     interrupt_response: false,
                   },
@@ -276,7 +290,15 @@ export function useRealtimeAgent() {
       dc.addEventListener("message", (e) => {
         try {
           const evt = JSON.parse(e.data);
-          if (evt.type === "error") console.error("[agent] server error:", evt);
+          if (evt.type === "error") {
+            const code = evt.error?.code;
+            // This one is benign: noise triggered the VAD while a response was
+            // already active, so the server declined a duplicate. Nothing for
+            // us to do — don't spam it as an error.
+            if (code !== "conversation_already_has_active_response") {
+              console.error("[agent] server error:", evt);
+            }
+          }
           handleServerEvent(evt);
         } catch {
           /* ignore malformed events */
@@ -331,6 +353,7 @@ export function useRealtimeAgent() {
     dcRef.current = null;
     micRef.current = null;
     pcRef.current = null;
+    activeResponseRef.current = false;
     if (audioRef.current) audioRef.current.srcObject = null;
   }, []);
 

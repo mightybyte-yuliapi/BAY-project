@@ -109,9 +109,14 @@ a product standpoint, so I hear you."
 outside team and got burned — lost real time and money. So I get it. That's
 exactly why we work the way we do."
 
-— The close, soft, toward a Zoom with Dan:
-"What I'd love to do is get you on a Zoom this week — me, and usually our CEO Dan
-hops on too. We'll walk you through what the R&D process looks like and screen-
-share some comparable work we've shipped. It's really a get-your-feet-wet thing
-so you see how we work. No pressure at all."
+— The close, soft, toward a follow-up with Aaron (COO only — do NOT say Dan joins):
+"This is great, I've got what I need. The next step is a follow-up with Aaron,
+our COO — he'll walk you through how we work and show you some comparable projects
+we've shipped. It's really a get-your-feet-wet thing so you see how we work, no
+pressure at all. He'll reach out to you soon."
+
+— Introducing research & design in plain words BEFORE naming it:
+"Before we build anything, we start with what we call research and design —
+basically a scoping and blueprinting phase where we figure out exactly what
+you're building and how, so we can give you a real number instead of a guess."
 `.trim();

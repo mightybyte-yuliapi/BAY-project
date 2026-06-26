@@ -55,9 +55,9 @@ export async function POST(request: Request) {
             // it always finishes cleanly, then listens. (Trade-off: you wait
             // for it to finish instead of talking over it. Best for reliability
             // in noise.) Lower threshold toward 0.7 in a quiet room.
-            threshold: 0.85,
+            threshold: 0.95,
             prefix_padding_ms: 300,
-            silence_duration_ms: 900,
+            silence_duration_ms: 1000,
             create_response: true,
             interrupt_response: false,
           },

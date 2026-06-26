@@ -11,6 +11,10 @@ export const ServerEvent = {
   // Model speech (output) — drives the "speaking" animation.
   OutputAudioDelta: "response.output_audio.delta",
   OutputAudioDone: "response.output_audio.done",
+  // A response started / finished — used to track whether one is in flight, so
+  // we never send response.create while the server already has one active
+  // (which errors with conversation_already_has_active_response).
+  ResponseCreated: "response.created",
   // A response finished — may contain function_call items to execute.
   ResponseDone: "response.done",
   // An item enters the conversation IN ORDER (before transcription completes).
