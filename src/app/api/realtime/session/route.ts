@@ -8,7 +8,7 @@
 import { agentConfig } from "@/agent/config";
 import { getToolSchemas } from "@/agent/tools";
 
-export async function POST() {
+export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return Response.json(
@@ -16,6 +16,19 @@ export async function POST() {
       { status: 500 },
     );
   }
+
+  // The lead's contact info (captured before the call). At least one of these
+  // is required by the UI before connecting; we make it available to the agent
+  // so it knows how to reach the lead and can include it in the report.
+  const body = await request.json().catch(() => ({}));
+  const contact = (body?.contact ?? {}) as { email?: string; phone?: string };
+  const contactLines = [
+    contact.email && `Email: ${contact.email}`,
+    contact.phone && `Phone: ${contact.phone}`,
+  ].filter(Boolean);
+  const contactBlock = contactLines.length
+    ? `\n\n# LEAD CONTACT (provided before the call)\nThe lead gave us this contact info, so you do not need to ask for it. Use it in the report.\n${contactLines.join("\n")}`
+    : "";
 
   // Configure the session the client will connect to. Instructions, voice,
   // model, and the tool *schemas* (no handlers) come from the agent layer.
@@ -26,7 +39,7 @@ export async function POST() {
       // Highest reasoning effort: best instruction-following and the most
       // natural, on-script conversation. Costs a little latency.
       reasoning: { effort: "xhigh" },
-      instructions: agentConfig.instructions,
+      instructions: agentConfig.instructions + contactBlock,
       audio: {
         input: {
           // Semantic VAD with low eagerness: lets the user finish their

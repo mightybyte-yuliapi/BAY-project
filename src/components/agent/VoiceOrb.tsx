@@ -1,64 +1,136 @@
 // src/components/agent/VoiceOrb.tsx
 //
-// The voice animation. A pulsing orb that reacts to the agent's voice state:
-//   - listening  → cool blue, gentle pulse (receiving the user's voice)
-//   - speaking   → warm violet, faster pulse (outputting voice)
-//   - idle       → calm, slow breathe
+// The voice animation — Mightybyte themed (pink #ea175c on dark). Reacts to the
+// agent's voice state with framer-motion:
+//   - idle       → slow, calm breathe
+//   - listening  → cool, steady pulse + expanding rings (receiving your voice)
+//   - speaking   → energetic pulse + faster concentric ripples (outputting voice)
 //
-// Pure presentational component — driven entirely by the `state` prop.
+// Pure presentational — driven entirely by the `state` prop.
 
-import { cn } from "@/lib/utils";
+"use client";
+
+import Image from "next/image";
+import { motion } from "framer-motion";
 import type { VoiceState } from "@/lib/realtime/events";
 
-const STATE_STYLES: Record<
-  VoiceState,
-  { ring: string; label: string; pulse: string }
-> = {
-  idle: {
-    ring: "bg-zinc-400/40",
-    label: "Idle",
-    pulse: "animate-[breathe_3s_ease-in-out_infinite]",
-  },
-  listening: {
-    ring: "bg-sky-500/50",
-    label: "Listening…",
-    pulse: "animate-[pulse-fast_1.1s_ease-in-out_infinite]",
-  },
-  speaking: {
-    ring: "bg-violet-500/60",
-    label: "Speaking…",
-    pulse: "animate-[pulse-fast_0.7s_ease-in-out_infinite]",
-  },
+const PINK = "#ea175c";
+const PINK_SOFT = "#ff4d85";
+
+const LABEL: Record<VoiceState, string> = {
+  idle: "Tap to talk",
+  listening: "Listening",
+  speaking: "Speaking",
 };
 
-export function VoiceOrb({ state }: { state: VoiceState }) {
-  const s = STATE_STYLES[state];
+// Expanding rings that emanate from the orb while it's active.
+function Ripples({ active, speed }: { active: boolean; speed: number }) {
+  // Rings only exist while active. When `active` flips false (e.g. the call
+  // ended), they unmount immediately — no lingering animation.
+  if (!active) return null;
+
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative flex h-40 w-40 items-center justify-center">
-        {/* Outer animated halo */}
-        <span
-          className={cn(
-            "absolute inset-0 rounded-full blur-xl",
-            s.ring,
-            s.pulse,
-          )}
+    <>
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="pointer-events-none absolute rounded-full border"
+          // Inset so that even at max scale the ring stays within the orb area
+          // and never reaches the controls below.
+          style={{ borderColor: PINK, inset: "28%" }}
+          initial={{ scale: 0.6, opacity: 0.55 }}
+          animate={{ scale: 1.9, opacity: 0 }}
+          transition={{
+            duration: speed,
+            repeat: Infinity,
+            ease: "easeOut" as const,
+            delay: (i * speed) / 3,
+          }}
         />
+      ))}
+    </>
+  );
+}
+
+export function VoiceOrb({ state }: { state: VoiceState }) {
+  const listening = state === "listening";
+  const speaking = state === "speaking";
+  const active = listening || speaking;
+
+  // Core orb motion per state.
+  const coreAnim =
+    state === "speaking"
+      ? { scale: [1, 1.12, 0.96, 1.08, 1], transition: { duration: 0.9, repeat: Infinity, ease: "easeInOut" as const } }
+      : state === "listening"
+        ? { scale: [1, 1.06, 1], transition: { duration: 1.6, repeat: Infinity, ease: "easeInOut" as const } }
+        : { scale: [1, 1.03, 1], transition: { duration: 3.4, repeat: Infinity, ease: "easeInOut" as const } };
+
+  return (
+    <div className="pointer-events-none flex flex-col items-center gap-5">
+      {/* Fixed-size stage. No overflow clipping (that produced a hard square
+          edge); instead the halo + ripples are sized/inset so they stay within
+          this area. All layers are pointer-events-none so nothing intercepts
+          the End button below. */}
+      <div className="relative flex h-48 w-48 items-center justify-center sm:h-56 sm:w-56">
+        {/* Outer glow halo */}
+        <motion.span
+          className="pointer-events-none absolute rounded-full blur-2xl"
+          style={{ inset: "14%", background: PINK }}
+          animate={{
+            opacity: active ? [0.35, 0.6, 0.35] : [0.18, 0.28, 0.18],
+            scale: active ? [1, 1.08, 1] : [1, 1.04, 1],
+          }}
+          transition={{
+            duration: speaking ? 0.9 : listening ? 1.6 : 3.4,
+            repeat: Infinity,
+            ease: "easeInOut" as const,
+          }}
+        />
+
+        {/* Expanding rings while active */}
+        <Ripples active={active} speed={speaking ? 1.1 : 1.8} />
+
         {/* Core orb */}
-        <span
-          className={cn(
-            "relative h-24 w-24 rounded-full bg-gradient-to-br shadow-lg transition-colors duration-500",
-            state === "speaking"
-              ? "from-violet-400 to-violet-600"
-              : state === "listening"
-                ? "from-sky-400 to-sky-600"
-                : "from-zinc-300 to-zinc-500",
-          )}
-        />
+        <motion.div
+          className="relative flex h-28 w-28 items-center justify-center rounded-full shadow-2xl sm:h-32 sm:w-32"
+          style={{
+            background: `radial-gradient(circle at 38% 30%, ${PINK_SOFT}, ${PINK} 52%, #8f0d39 100%)`,
+            boxShadow: `0 0 60px -10px ${PINK}, inset 0 -8px 22px rgba(0,0,0,0.35)`,
+          }}
+          animate={coreAnim}
+        >
+          {/* Inner sheen highlight */}
+          <span
+            className="pointer-events-none absolute rounded-full opacity-50"
+            style={{
+              inset: "10%",
+              background:
+                "radial-gradient(circle at 35% 22%, rgba(255,255,255,0.65), transparent 50%)",
+            }}
+          />
+          {/* Logo in the center — rendered white so it reads cleanly on pink */}
+          <Image
+            src="/logo.png"
+            alt="Mightybyte"
+            width={96}
+            height={96}
+            priority
+            className="relative h-20 w-20 sm:h-24 sm:w-24"
+            style={{
+              filter: "brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.35))",
+            }}
+          />
+        </motion.div>
       </div>
-      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-        {s.label}
-      </p>
+
+      <motion.p
+        key={state}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-sm font-medium tracking-wide text-zinc-300"
+      >
+        {LABEL[state]}
+      </motion.p>
     </div>
   );
 }
