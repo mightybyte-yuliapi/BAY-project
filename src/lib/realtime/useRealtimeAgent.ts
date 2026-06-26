@@ -101,6 +101,21 @@ export function useRealtimeAgent() {
     if (dc?.readyState === "open") dc.send(JSON.stringify(event));
   }, []);
 
+  // Update the transcript AND keep transcriptRef in sync synchronously, so a
+  // beacon firing on unload (or finalize firing the instant end_call lands)
+  // always sees the latest transcript instead of a render-lagged ref. The
+  // updater still reads `prev`, so it stays pure / StrictMode-safe.
+  const commitTranscript = useCallback(
+    (updater: (prev: TranscriptEntry[]) => TranscriptEntry[]) => {
+      setTranscript((prev) => {
+        const next = updater(prev);
+        transcriptRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
+
   // Run a model function call on our backend and feed the result back.
   // Tool calls are logged to the console only — not surfaced in the UI.
   const handleFunctionCall = useCallback(
@@ -174,7 +189,7 @@ export function useRealtimeAgent() {
           const itemId = item?.id;
           const role = item?.role; // "user" | "assistant"
           if (itemId && (role === "user" || role === "assistant")) {
-            setTranscript((prev) =>
+            commitTranscript((prev) =>
               ensureBubble(prev, itemId, role === "user" ? "user" : "agent"),
             );
           }
@@ -185,7 +200,7 @@ export function useRealtimeAgent() {
           // Fill the agent bubble for this response item (created above, or
           // created here if the added event didn't arrive first).
           const itemId = (event as { item_id?: string }).item_id ?? "agent";
-          setTranscript((prev) => appendDeltaById(prev, itemId, "agent", delta));
+          commitTranscript((prev) => appendDeltaById(prev, itemId, "agent", delta));
           break;
         }
         case ServerEvent.InputTranscriptCompleted: {
@@ -194,12 +209,12 @@ export function useRealtimeAgent() {
           // Drop noise-hallucination transcripts (foreign script, 1-char blips).
           if (!isLikelyRealSpeech(text)) {
             // If a placeholder bubble was created for this item, remove it.
-            if (itemId) setTranscript((prev) => removeBubble(prev, itemId));
+            if (itemId) commitTranscript((prev) => removeBubble(prev, itemId));
             break;
           }
           // Fill the user's in-order bubble (created on conversation.item.added)
           // with the transcribed text. Falls back to appending if not found.
-          setTranscript((prev) => setBubbleText(prev, itemId, "user", text.trim()));
+          commitTranscript((prev) => setBubbleText(prev, itemId, "user", text.trim()));
           break;
         }
         case ServerEvent.ResponseDone: {
@@ -211,7 +226,7 @@ export function useRealtimeAgent() {
         }
       }
     },
-    [handleFunctionCall],
+    [handleFunctionCall, commitTranscript],
   );
 
   const connect = useCallback(async (contact?: { email?: string; phone?: string }) => {
@@ -403,10 +418,8 @@ export function useRealtimeAgent() {
   // Keep the ref pointing at the latest disconnect for end_call teardown.
   endCallRef.current = disconnect;
 
-  // Mirror transcript into a ref for unload-time access (sendBeacon).
-  useEffect(() => {
-    transcriptRef.current = transcript;
-  }, [transcript]);
+  // transcriptRef is kept in sync synchronously via commitTranscript (the
+  // source of truth for the beacon); no post-render mirror effect needed.
 
   // Safety net: if the page is hidden/closed mid-call, beacon an abandoned
   // briefing before we lose the transcript.
