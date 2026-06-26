@@ -19,6 +19,9 @@ export function ConnectionStatus({
   status: Status;
   error?: string | null;
 }) {
+  // Idle is the default resting state — no need to advertise "Not connected".
+  if (status === "idle") return null;
+
   const s = LABELS[status];
   return (
     <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">

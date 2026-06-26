@@ -51,6 +51,9 @@ export function useRealtimeAgent() {
 
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  // True while a response is in flight but the agent hasn't started speaking
+  // yet — drives the "Bay team thinking" indicator.
+  const [thinking, setThinking] = useState(false);
   // True after the agent has wrapped up the call (end_call) — drives the
   // "conversation ended" confirmation UI.
   const [callEnded, setCallEnded] = useState(false);
@@ -238,6 +241,8 @@ export function useRealtimeAgent() {
           break;
         case ServerEvent.OutputAudioDelta:
           setVoiceState("speaking");
+          // The agent has started speaking — it's no longer just "thinking".
+          setThinking(false);
           break;
         case ServerEvent.OutputAudioDone:
           setVoiceState("idle");
@@ -252,6 +257,8 @@ export function useRealtimeAgent() {
           break;
         case ServerEvent.ResponseCreated:
           activeResponseRef.current = true;
+          // Response started but no audio yet → the agent is "thinking".
+          setThinking(true);
           break;
         case ServerEvent.ConversationItemAdded: {
           // An item entered the conversation IN ORDER. Create its (initially
@@ -294,6 +301,7 @@ export function useRealtimeAgent() {
         }
         case ServerEvent.ResponseDone: {
           activeResponseRef.current = false;
+          setThinking(false);
           for (const call of extractFunctionCalls(event)) {
             void handleFunctionCall(call);
           }
@@ -313,6 +321,7 @@ export function useRealtimeAgent() {
     transcriptRef.current = [];
     finalizedRef.current = false;
     setCallEnded(false);
+    setThinking(false);
     // Remember the lead's contact so the briefing email can include it.
     contactRef.current = contact ?? {};
     try {
@@ -493,6 +502,7 @@ export function useRealtimeAgent() {
     cleanup();
     setStatus("idle");
     setVoiceState("idle");
+    setThinking(false);
     // Always show the ended notice once a real conversation has happened, even
     // if the model spoke a goodbye without calling end_call — the user must get
     // closure feedback regardless of how the call ended.
@@ -560,6 +570,7 @@ export function useRealtimeAgent() {
   return {
     status,
     voiceState,
+    thinking,
     transcript,
     error,
     connect,

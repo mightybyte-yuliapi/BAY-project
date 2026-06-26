@@ -49,9 +49,9 @@ export function ContactForm({ value, onChange, disabled }: Props) {
 
   return (
     <div className="flex w-full max-w-sm flex-col gap-3">
-      <p className="text-sm text-zinc-400">
+      <p className="text-lg font-medium text-white">
         Enter your email or phone number to start.{" "}
-        <span className="text-zinc-500">(at least one required)</span>
+        <span className="text-white">(at least one required)</span>
       </p>
 
       <label htmlFor={emailId} className="flex flex-col gap-1 text-sm">
